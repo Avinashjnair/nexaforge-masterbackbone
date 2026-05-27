@@ -57,10 +57,12 @@ const projectCommentsRouter = require("./routes/projectComments");
 const kaizenRouter = require("./routes/kaizen");
 const fieldVisitsRouter = require("./routes/fieldVisits");
 const customerComplaintsRouter = require("./routes/customerComplaints");
-const reportsRouter       = require("./routes/reports");
-const docControlRouter    = require("./routes/docControl");
+const reportsRouter        = require("./routes/reports");
+const docControlRouter     = require("./routes/docControl");
 const supplierPortalRouter = require("./routes/supplierPortal");
-const webpushRouter       = require("./routes/webpush");
+const webpushRouter        = require("./routes/webpush");
+const qcDocsRouter         = require("./routes/qcDocs");
+const productionDocsRouter = require("./routes/productionDocs");
 const cookieParser = require("cookie-parser");
 const { authenticateJWT, requireDepartment } = require("./middleware/auth");
 const { auditLog } = require("./middleware/auditLog");
@@ -185,8 +187,14 @@ app.use("/api/iot",      requireDepartment("production"), machinesRouter);
 // ── S-17A: Advanced Reporting & BI ───────────────────────────
 app.use("/api/reports", reportsRouter);
 
-// ── S-17B: Document Control ───────────────────────────────────
+// ── S-17B: Document Control (generic register) ────────────────
 app.use("/api/docs", docControlRouter);
+
+// ── DocMgmt_V1: QC owns MDR, drawings, procedures, transmittals
+app.use("/api/qc", requireDepartment("qc", "welding", "production"), qcDocsRouter);
+
+// ── DocMgmt_V1: Production owns approval engine + archive ─────
+app.use("/api/production", requireDepartment("production", "qc"), productionDocsRouter);
 
 // ── S-17C: Supplier Portal ────────────────────────────────────
 app.use("/api/suppliers", requireDepartment("procurement", "finance"), supplierPortalRouter);

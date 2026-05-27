@@ -175,9 +175,41 @@ router.get("/production", requireDepartment("production"), async (req, res, next
     const ms = machineStats.rows[0];
     const total = Number(ms.total_readings);
     const violations = Number(ms.violation_readings);
-    // OEE proxy: quality component = (total - violations) / total
     const qualityRate = total > 0 ? ((total - violations) / total) : 0.73;
-    const oee = Math.round(qualityRate * 0.91 * 0.88 * 100); // × availability × performance estimates
+    const oee = Math.round(qualityRate * 0.91 * 0.88 * 100);
+
+    // DocMgmt_V1 — Production doc widgets
+    const [signOffQueue, recentArchived] = await Promise.all([
+      // Approval instances in_progress — sign-off queue for production dept
+      db.raw(`
+        SELECT COUNT(*) AS count,
+          COALESCE(
+            json_agg(json_build_object(
+              'instance_id', ai.id,
+              'entity_type', ai.entity_type,
+              'entity_id',   ai.entity_id,
+              'chain_name',  ac.name,
+              'step_name',   aps.step_name,
+              'submitted_at',ai.submitted_at,
+              'sla_breached', (ai.submitted_at + (ac.sla_hours || ' hours')::interval) < NOW()
+            ) ORDER BY ai.submitted_at ASC) FILTER (WHERE 1=1),
+          '[]'::json) AS items
+        FROM approval_instances ai
+        JOIN approval_chains ac  ON ac.id = ai.chain_id
+        JOIN approval_steps  aps ON aps.chain_id = ai.chain_id AND aps.step_order = ai.current_step_order
+        WHERE ai.status = 'in_progress'
+          AND (aps.approver_dept = 'production' OR aps.approver_role IN ('manager','gm'))
+        LIMIT 5
+      `).catch(() => ({ rows: [{ count: 0, items: [] }] })),
+
+      // Recently completed (archived-proxy) projects
+      db("projects").where("status", "completed")
+        .orderBy("updated_at", "desc").limit(5)
+        .select("id", "project_no", "name", "updated_at")
+        .catch(() => []),
+    ]);
+
+    const sq = signOffQueue.rows[0];
 
     res.json({
       oee: {
@@ -188,7 +220,13 @@ router.get("/production", requireDepartment("production"), async (req, res, next
       },
       wip_value:      Number(wipValue.rows[0].wip_value),
       overdue_steps:  overdueSteps,
-      schedule_attainment: Math.max(60, Math.min(99, oee + 8)), // proxy until scheduling grid (S-12)
+      schedule_attainment: Math.max(60, Math.min(99, oee + 8)),
+      // DocMgmt_V1 widgets
+      sign_off_queue: {
+        count: Number(sq.count),
+        items: sq.items || [],
+      },
+      recently_archived: recentArchived,
     });
   } catch (err) {
     next(err);
@@ -330,6 +368,54 @@ router.get("/qc", requireDepartment("qc"), async (req, res, next) => {
     const withNcr     = Number(ncrProjectCount?.count || 0);
     const fpy         = Math.round(((totalActive - withNcr) / totalActive) * 100);
 
+    // DocMgmt_V1 — QC doc widgets
+    const [pendingApprovals, overdueTransmittals, mdrCompleteness] = await Promise.all([
+      // Documents pending QC sign-off in the approval engine
+      db.raw(`
+        SELECT COUNT(*) AS count
+        FROM approval_instances ai
+        JOIN approval_chains ac ON ac.id = ai.chain_id
+        JOIN approval_steps aps ON aps.chain_id = ai.chain_id AND aps.step_order = ai.current_step_order
+        WHERE ai.status = 'in_progress'
+          AND (aps.approver_dept = 'qc' OR aps.approver_role IN ('senior','manager','gm'))
+      `).catch(() => ({ rows: [{ count: 0 }] })),
+
+      // Transmittals past response_due_date and still open
+      db.raw(`
+        SELECT COUNT(*) AS count,
+          COALESCE(
+            json_agg(json_build_object(
+              'id', t.id, 'transmittal_no', t.transmittal_no,
+              'to_party', t.to_party,
+              'days_overdue', EXTRACT(DAY FROM NOW() - t.response_due_date)::int
+            ) ORDER BY t.response_due_date ASC) FILTER (WHERE 1=1),
+          '[]'::json) AS items
+        FROM transmittals t
+        WHERE t.response_due_date < NOW()
+          AND t.status IN ('sent','under_review')
+        LIMIT 5
+      `).catch(() => ({ rows: [{ count: 0, items: [] }] })),
+
+      // MDR completeness across active projects
+      db.raw(`
+        SELECT
+          COUNT(DISTINCT project_id)                              AS projects_with_mdr,
+          COUNT(*)                                                AS total_docs,
+          COUNT(*) FILTER (WHERE status IN ('submitted','client_review','client_approved')) AS submitted,
+          ROUND(
+            COUNT(*)::numeric FILTER (WHERE status IN ('submitted','client_review','client_approved'))
+            / NULLIF(COUNT(*), 0) * 100, 1
+          )                                                       AS overall_completeness_pct
+        FROM mdr_entries m
+        JOIN projects p ON p.id = m.project_id
+        WHERE p.status = 'active' AND p.deleted_at IS NULL
+      `).catch(() => ({ rows: [{ projects_with_mdr: 0, total_docs: 0, submitted: 0, overall_completeness_pct: null }] })),
+    ]);
+
+    const pa  = pendingApprovals.rows[0];
+    const ot  = overdueTransmittals.rows[0];
+    const mdr = mdrCompleteness.rows[0];
+
     res.json({
       ncr: {
         total_open:     Number(ncr.total_open),
@@ -340,6 +426,18 @@ router.get("/qc", requireDepartment("qc"), async (req, res, next) => {
       hold_points:         Number(hold.active_holds),
       pending_inspections: Number(inspectionSummary?.count || 0),
       fpy_pct:             fpy,
+      // DocMgmt_V1 widgets
+      doc_approvals_pending: Number(pa.count),
+      overdue_transmittals: {
+        count: Number(ot.count),
+        items: ot.items || [],
+      },
+      mdr_completeness: {
+        projects_with_mdr:      Number(mdr.projects_with_mdr),
+        total_docs:             Number(mdr.total_docs),
+        submitted:              Number(mdr.submitted),
+        overall_completeness_pct: mdr.overall_completeness_pct !== null ? Number(mdr.overall_completeness_pct) : null,
+      },
     });
   } catch (err) {
     next(err);
