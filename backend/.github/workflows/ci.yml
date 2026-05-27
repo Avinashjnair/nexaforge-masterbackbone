@@ -1,0 +1,186 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, staging]
+  push:
+    branches: [main, staging]
+
+jobs:
+  # ── Job 1: Unit + Integration tests (Jest) ─────────────────────
+  test:
+    name: Jest — Unit & Integration
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_DB: nexaforge_test
+          POSTGRES_USER: nexaforge_api
+          POSTGRES_PASSWORD: test_password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run migrations
+        run: npx knex migrate:latest --knexfile knexfile.js
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: nexaforge_test
+          DB_USER: nexaforge_api
+          DB_PASSWORD: test_password
+          JWT_SECRET: ci-test-secret-nexaforge
+
+      - name: Run Jest (unit + integration)
+        run: npm test -- --ci --forceExit --coverage
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: nexaforge_test
+          DB_USER: nexaforge_api
+          DB_PASSWORD: test_password
+          JWT_SECRET: ci-test-secret-nexaforge
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+
+  # ── Job 2: Cypress E2E (API-only, no browser UI required) ──────
+  e2e:
+    name: Cypress — E2E API tests
+    runs-on: ubuntu-latest
+    needs: test   # only run if Jest passes
+
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg16
+        env:
+          POSTGRES_DB: nexaforge_e2e
+          POSTGRES_USER: nexaforge_api
+          POSTGRES_PASSWORD: e2e_password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run migrations + seed
+        run: |
+          npx knex migrate:latest --knexfile knexfile.js
+          npx knex seed:run --knexfile knexfile.js
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: nexaforge_e2e
+          DB_USER: nexaforge_api
+          DB_PASSWORD: e2e_password
+          JWT_SECRET: ci-e2e-secret-nexaforge
+
+      - name: Start API server (background)
+        run: node src/index.js &
+        env:
+          NODE_ENV: test
+          PORT: 3000
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: nexaforge_e2e
+          DB_USER: nexaforge_api
+          DB_PASSWORD: e2e_password
+          JWT_SECRET: ci-e2e-secret-nexaforge
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          CORS_ORIGIN: http://localhost:3000
+
+      - name: Wait for API to be ready
+        run: |
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:3000/health && break
+            echo "Waiting for API... ($i/20)"
+            sleep 2
+          done
+
+      - name: Run Cypress E2E (API specs only — no browser UI)
+        run: >
+          npx cypress run
+          --browser electron
+          --spec
+          "cypress/e2e/01-new-project.cy.js,
+           cypress/e2e/02-quote-to-project.cy.js,
+           cypress/e2e/03-ncr-workflow.cy.js,
+           cypress/e2e/04-weld-joint.cy.js,
+           cypress/e2e/05-invoice-lifecycle.cy.js,
+           cypress/e2e/06-dept-isolation.cy.js,
+           cypress/e2e/07-mrp-replenishment.cy.js"
+        env:
+          CYPRESS_apiUrl: http://localhost:3000
+          CYPRESS_gmEmail: gm@nexaforge.com
+          CYPRESS_gmPassword: Password123!
+          CYPRESS_seniorEmail: qc@nexaforge.com
+          CYPRESS_seniorPass: Password123!
+          CYPRESS_financeEmail: finance@nexaforge.com
+          CYPRESS_financePass: Password123!
+
+      - name: Upload Cypress screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: cypress/screenshots/
+          retention-days: 7

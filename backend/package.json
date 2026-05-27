@@ -1,0 +1,71 @@
+{
+  "name": "nexaforge-erp-api",
+  "version": "1.0.0",
+  "description": "NexaForge ERP Backend API — Node.js/Express",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "migrate": "knex migrate:latest",
+    "migrate:rollback": "knex migrate:rollback",
+    "seed": "knex seed:run",
+    "test": "jest --runInBand",
+    "test:coverage": "jest --coverage --runInBand",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run --browser electron",
+    "staging:up": "docker compose -f docker-compose.yml -f docker-compose.staging.yml up --build -d",
+    "staging:down": "docker compose -f docker-compose.yml -f docker-compose.staging.yml down",
+    "staging:logs": "docker compose -f docker-compose.yml -f docker-compose.staging.yml logs -f api",
+    "e2e": "npm run cypress:run",
+    "e2e:open": "npm run cypress:open",
+    "e2e:isolation": "cypress run --browser electron --spec cypress/e2e/06-dept-isolation.cy.js",
+    "load:test": "k6 run --env BASE_URL=http://localhost:3000 __tests__/load/k6-dashboard.js",
+    "load:test:staging": "k6 run --env BASE_URL=https://api.nexaforge.com __tests__/load/k6-dashboard.js"
+  },
+  "dependencies": {
+    "@sentry/node": "^10.51.0",
+    "amqplib": "^0.10.4",
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "dxf-parser": "^1.1.2",
+    "exceljs": "^4.4.0",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.3.1",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "knex": "^3.1.0",
+    "minio": "^8.0.1",
+    "morgan": "^1.10.0",
+    "mqtt": "^5.5.0",
+    "multer": "^1.4.5-lts.1",
+    "pdf-parse": "^1.1.1",
+    "pdfkit": "^0.15.0",
+    "pg": "^8.12.0",
+    "redis": "^4.6.14",
+    "socket.io": "^4.7.5",
+    "uuid": "^10.0.0"
+  },
+  "overrides": {
+    "tar": "^7.5.11"
+  },
+  "devDependencies": {
+    "cypress": "^15.14.2",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.4",
+    "supertest": "^7.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/__tests__/**/*.test.js",
+      "**/*.test.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "__tests__/load/",
+      "src/__tests__/"
+    ]
+  }
+}
