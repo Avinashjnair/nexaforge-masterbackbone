@@ -29,6 +29,7 @@ updated: 2026-05-10
 | S-14 | HR, Finance & Store | ✅ Complete | 100% |
 | S-15 | New workflows & modules | ✅ Complete | 100% |
 | S-16 | UI design upgrade (Bryzos/Milkinside) | ✅ Complete | 100% |
+| S-17 | Advanced BI, Doc Control, Supplier Portal, Mobile PWA | ✅ Complete | 100% |
 
 **Legend:** ⬜ Not started · 🔵 In progress · ✅ Complete · 🔴 Blocked
 
@@ -88,6 +89,32 @@ updated: 2026-05-10
 | HR & Workforce | ✅ | ✅ | ✅ | |
 | Welding / WPS | ✅ | ✅ | ✅ | |
 | Analytics & KPIs | ✅ | ✅ | ✅ | |
+
+---
+
+---
+
+## S-17 feature log
+
+| Feature | Status |
+|---|---|
+| **S-17A: Reporting** — `/api/reports/project-profitability` (JSON + XLSX export) | ✅ |
+| **S-17A: Reporting** — `/api/reports/resource-utilisation` (JSON + XLSX export) | ✅ |
+| **S-17A: Reporting** — `/api/reports/executive-summary` (JSON + PDF export, GM only) | ✅ |
+| **S-17A: Reporting** — `/api/reports/supplier-performance` scorecard report | ✅ |
+| **S-17B: Doc Control** — `doc_register` + `doc_revisions` + `doc_links` tables | ✅ |
+| **S-17B: Doc Control** — full revision approval workflow (draft → in_review → approved/rejected) | ✅ |
+| **S-17B: Doc Control** — entity links (project / NCR / ITP / weld joint) | ✅ |
+| **S-17C: Supplier Portal** — `supplier_contacts` + RFQ + PO ack + delivery + scorecards | ✅ |
+| **S-17C: Supplier Portal** — RFQ lifecycle (draft → sent → responses → awarded) | ✅ |
+| **S-17C: Supplier Portal** — portal token auth for supplier self-service responses | ✅ |
+| **S-17C: Supplier Portal** — quarterly scorecard + weighted overall rating | ✅ |
+| **S-17D: Mobile PWA** — `manifest.json` + service worker (`sw.js`) | ✅ |
+| **S-17D: Mobile PWA** — Cache-first shell, network-first API, 3s offline fallback | ✅ |
+| **S-17D: Mobile PWA** — Background Sync queue for offline POST/PATCH mutations | ✅ |
+| **S-17D: Mobile PWA** — VAPID Web Push — NCR/QC hold/MRP shortage notifications | ✅ |
+| **S-17D: Mobile PWA** — `push_subscriptions` table + `/api/push` subscribe endpoints | ✅ |
+| **Migration** — `20260527_017_s17_doc_control_supplier.js` (11 new tables) | ✅ |
 
 ---
 

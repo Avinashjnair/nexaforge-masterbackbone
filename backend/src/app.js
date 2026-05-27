@@ -57,6 +57,10 @@ const projectCommentsRouter = require("./routes/projectComments");
 const kaizenRouter = require("./routes/kaizen");
 const fieldVisitsRouter = require("./routes/fieldVisits");
 const customerComplaintsRouter = require("./routes/customerComplaints");
+const reportsRouter       = require("./routes/reports");
+const docControlRouter    = require("./routes/docControl");
+const supplierPortalRouter = require("./routes/supplierPortal");
+const webpushRouter       = require("./routes/webpush");
 const cookieParser = require("cookie-parser");
 const { authenticateJWT, requireDepartment } = require("./middleware/auth");
 const { auditLog } = require("./middleware/auditLog");
@@ -177,6 +181,18 @@ app.use("/api/machines/:id/downtime", requireDepartment("production"), machineDo
 // ── S-06: IIoT API ────────────────────────────────────────────
 app.use("/api/machines", requireDepartment("production"), machinesRouter);
 app.use("/api/iot",      requireDepartment("production"), machinesRouter);
+
+// ── S-17A: Advanced Reporting & BI ───────────────────────────
+app.use("/api/reports", reportsRouter);
+
+// ── S-17B: Document Control ───────────────────────────────────
+app.use("/api/docs", docControlRouter);
+
+// ── S-17C: Supplier Portal ────────────────────────────────────
+app.use("/api/suppliers", requireDepartment("procurement", "finance"), supplierPortalRouter);
+
+// ── S-17D: Web Push ───────────────────────────────────────────
+app.use("/api/push", webpushRouter);
 
 // ── 404 ───────────────────────────────────────────────────────
 app.use((_req, res) => {
