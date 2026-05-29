@@ -63,6 +63,12 @@ const supplierPortalRouter = require("./routes/supplierPortal");
 const webpushRouter        = require("./routes/webpush");
 const qcDocsRouter         = require("./routes/qcDocs");
 const productionDocsRouter = require("./routes/productionDocs");
+const quoteLogRouter         = require("./routes/quoteLog");
+const quoteApprovalsRouter   = require("./routes/quoteApprovals");
+const appointmentsRouter     = require("./routes/appointments");
+const contactsRouter         = require("./routes/contacts");
+const prequalificationsRouter = require("./routes/prequalifications");
+const competitorsRouter      = require("./routes/competitors");
 const cookieParser = require("cookie-parser");
 const { authenticateJWT, requireDepartment } = require("./middleware/auth");
 const { auditLog } = require("./middleware/auditLog");
@@ -144,6 +150,14 @@ app.use("/api/dashboard", dashboardAggregatesRouter);
 app.use("/api/clients",       requireDepartment("marketing"), clientsRouter);
 app.use("/api/opportunities", requireDepartment("marketing"), opportunitiesRouter);
 app.use("/api/quotes",        requireDepartment("marketing"), quotesRouter);
+// ── S-19: CRM / Marketing persistence (quote log, approvals, appointments,
+//          contacts, pre-qualifications, competitor intel + bid outcomes) ──
+app.use("/api/quote-log",         requireDepartment("marketing"), quoteLogRouter);
+app.use("/api/quote-approvals",   requireDepartment("marketing"), quoteApprovalsRouter);
+app.use("/api/crm/appointments",  requireDepartment("marketing"), appointmentsRouter);
+app.use("/api/crm/contacts",      requireDepartment("marketing"), contactsRouter);
+app.use("/api/prequalifications", requireDepartment("marketing"), prequalificationsRouter);
+app.use("/api/competitors",       requireDepartment("marketing"), competitorsRouter);
 app.use("/api/finance",       requireDepartment("finance"),   financeRouter);
 app.use("/api", hrRouter); // HR guard applied inside hr.js router
 

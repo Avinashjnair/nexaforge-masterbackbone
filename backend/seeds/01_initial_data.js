@@ -74,6 +74,9 @@ exports.seed = async function (knex) {
     { id: "10000000-0000-0000-0000-000000000002", email: "production@nexaforge.com",  password_hash: passwordHash, full_name: "Production Manager",   role: "manager", department: "production",  is_active: true },
     // ── dept: qc ─────────────────────────────────────────────────
     { id: "10000000-0000-0000-0000-000000000003", email: "qc@nexaforge.com",          password_hash: passwordHash, full_name: "QC Manager",           role: "senior",  department: "qc",          is_active: true },
+    // ── dept: qc — sub-roles surfaced by the login quick-access menu ──
+    { id: "10000000-0000-0000-0000-000000000012", email: "qc_lead@nexaforge.com",      password_hash: passwordHash, full_name: "Sarah Ahmed",          role: "senior",  department: "qc",          is_active: true },
+    { id: "10000000-0000-0000-0000-000000000013", email: "qc_inspector@nexaforge.com", password_hash: passwordHash, full_name: "John Doe",             role: "user",    department: "qc",          is_active: true },
     // ── dept: marketing ──────────────────────────────────────────
     { id: "10000000-0000-0000-0000-000000000004", email: "marketing@nexaforge.com",   password_hash: passwordHash, full_name: "Sales Manager",        role: "manager", department: "marketing",   is_active: true },
     // ── dept: finance ─────────────────────────────────────────────

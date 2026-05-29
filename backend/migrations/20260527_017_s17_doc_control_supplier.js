@@ -186,7 +186,6 @@ exports.up = async function (knex) {
     t.unique(["supplier_id", "year", "quarter"]);
     t.index(["supplier_id", "year"]);
   });
-};
 
   // ── S-17D: Push subscriptions ─────────────────────────────
   await knex.schema.createTable("push_subscriptions", (t) => {
