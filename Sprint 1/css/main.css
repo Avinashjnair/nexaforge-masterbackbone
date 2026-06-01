@@ -351,15 +351,17 @@ ul { list-style: none; }
 
 /* ── Cards ── */
 .card {
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
   padding: 20px;
-  box-shadow: var(--shadow-card);
-  border: none;
+  box-shadow: var(--shadow-glass), var(--shadow-glass-inset);
   transition: box-shadow 0.25s ease, transform 0.2s ease;
 }
 .card:hover {
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: var(--shadow-glass-hover), var(--shadow-glass-inset);
   transform: translateY(-2px);
 }
 .card-header {
@@ -501,7 +503,9 @@ ul { list-style: none; }
 }
 
 /* ── Tables ── */
-.table-wrap { overflow-x: auto; }
+/* Tables sit on translucent glass — a faint backing + opaque sticky header
+   keep dense rows legible without losing the frosted feel. */
+.table-wrap { overflow-x: auto; background: rgba(255,255,255,0.30); border-radius: var(--radius-md); }
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th {
   text-align: left;
@@ -513,7 +517,7 @@ ul { list-style: none; }
   letter-spacing: 0.08em;
   border-bottom: 1px solid rgba(180,175,210,0.20);
   white-space: nowrap;
-  background: var(--bg-card-inner);
+  background: rgba(247,245,251,0.92);  /* opaque so scrolling rows don't bleed through sticky header */
   position: sticky;
   top: 0;
 }
