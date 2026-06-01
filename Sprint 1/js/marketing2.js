@@ -1057,7 +1057,7 @@ function renderMktPreQual() {
     <div class="card">
       <div class="card-header">
         <span class="card-title">Pre-qualification registrations</span>
-        <button class="btn btn-primary btn-sm" onclick="showToast('New pre-qualification form opened','info')">
+        <button class="btn btn-primary btn-sm" onclick="mktNewPrequal()">
           <svg viewBox="0 0 15 15" fill="none"><path d="M7.5 2v11M2 7.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           New registration
         </button>
@@ -1136,7 +1136,7 @@ function renderMktIntelligence() {
       <div class="card">
         <div class="card-header">
           <span class="card-title">Competitor registry</span>
-          <button class="btn btn-ghost btn-sm" onclick="showToast('Add competitor form coming soon','info')">+ Add</button>
+          <button class="btn btn-ghost btn-sm" onclick="mktAddCompetitor()">+ Add</button>
         </div>
         ${MktIntelData.competitors.map(c => `
           <div style="padding:12px 0;border-bottom:1px solid var(--border)">
@@ -1235,7 +1235,7 @@ function renderMktContacts() {
           <div class="metric-value" style="font-size:22px;color:var(--amber)">${dueSoon}</div>
         </div>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="showToast('Add contact form coming soon','info')">
+      <button class="btn btn-primary btn-sm" onclick="mktAddContact()">
         <svg viewBox="0 0 15 15" fill="none"><path d="M7.5 2v11M2 7.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         Add contact
       </button>
@@ -1438,6 +1438,137 @@ async function crmSaveAppt() {
   if (_mktCal) _mktCal.sel = crmDateKey(start);
   showToast('Appointment scheduled', 'success');
   renderMktActionQueue();
+}
+
+/* ── Shared modal helpers for the CRM create forms ── */
+const CRM_FORM_INP = 'width:100%;background:var(--bg-surface);border:1px solid var(--border-md);border-radius:var(--radius-sm);padding:8px 12px;font-size:13px;color:var(--text-primary);outline:none;font-family:var(--font-body)';
+const CRM_FORM_LBL = 'font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.09em;display:block;margin-bottom:4px';
+function crmFormShell(title, bodyHtml, saveFn, saveLabel) {
+  return `
+    <div style="background:var(--bg-elevated);border:1px solid var(--border-md);border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--shadow-lg)">
+      <div style="padding:18px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <div style="font-family:var(--font-display);font-size:15px;font-weight:700">${title}</div>
+        <button class="btn-icon" onclick="closeCRMModal()"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 2l9 9M11 2L2 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
+      </div>
+      <div style="padding:20px 22px;display:flex;flex-direction:column;gap:13px">
+        ${bodyHtml}
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-primary" style="flex:1" onclick="${saveFn}">${saveLabel}</button>
+          <button class="btn btn-secondary" onclick="closeCRMModal()">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+}
+const _cv = (id) => (document.getElementById(id) || {}).value || '';
+
+/* ═══ Add competitor ═══ */
+function mktAddCompetitor() {
+  openCRMModal(crmFormShell('Add competitor', `
+    <div><label style="${CRM_FORM_LBL}">Name</label><input id="cmpName" type="text" placeholder="e.g. Gulf Steel Works" style="${CRM_FORM_INP}"/></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><label style="${CRM_FORM_LBL}">Region</label><input id="cmpRegion" type="text" placeholder="e.g. Dubai, UAE" style="${CRM_FORM_INP}"/></div>
+      <div><label style="${CRM_FORM_LBL}">Size</label>
+        <select id="cmpSize" style="${CRM_FORM_INP}"><option>Small</option><option selected>Medium</option><option>Large</option></select>
+      </div>
+    </div>
+    <div><label style="${CRM_FORM_LBL}">Strengths (comma-separated)</label><input id="cmpStrengths" type="text" placeholder="e.g. Low pricing, Fast delivery" style="${CRM_FORM_INP}"/></div>
+    <div><label style="${CRM_FORM_LBL}">Weaknesses (comma-separated)</label><input id="cmpWeak" type="text" placeholder="e.g. Limited ASME cert" style="${CRM_FORM_INP}"/></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><label style="${CRM_FORM_LBL}">Their win rate vs us (%)</label><input id="cmpWin" type="number" min="0" max="100" placeholder="40" style="${CRM_FORM_INP}"/></div>
+      <div><label style="${CRM_FORM_LBL}">Avg price gap (%)</label><input id="cmpGap" type="number" placeholder="-8" style="${CRM_FORM_INP}"/></div>
+    </div>`, 'mktSaveCompetitor()', 'Add competitor'));
+}
+async function mktSaveCompetitor() {
+  const name = _cv('cmpName').trim();
+  if (!name) { showToast('Name is required', 'warn'); return; }
+  const splitList = (s) => s.split(',').map(x => x.trim()).filter(Boolean);
+  const winRate = _cv('cmpWin').trim(), avgGap = _cv('cmpGap').trim();
+  const payload = {
+    name, region: _cv('cmpRegion').trim() || null, size: _cv('cmpSize') || null,
+    strengths: splitList(_cv('cmpStrengths')), weaknesses: splitList(_cv('cmpWeak')),
+    win_rate: winRate === '' ? null : Number(winRate), avg_gap: avgGap === '' ? null : Number(avgGap),
+  };
+  let row;
+  try { row = CrmMap.competitor(await CrmAPI.competitorCreate(payload)); }
+  catch {
+    row = { id: 'C' + String((MktIntelData.competitors.length + 1)).padStart(2, '0'), name, region: payload.region || '', size: payload.size || '', strengths: payload.strengths, weaknesses: payload.weaknesses, winRate: payload.win_rate || 0, avgGap: payload.avg_gap || 0 };
+  }
+  MktIntelData.competitors.push(row);
+  closeCRMModal();
+  showToast('Competitor added', 'success');
+  renderMktIntelligence();
+}
+
+/* ═══ Add contact ═══ */
+function mktAddContact() {
+  openCRMModal(crmFormShell('Add contact', `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><label style="${CRM_FORM_LBL}">Name</label><input id="ctName" type="text" placeholder="e.g. Ms. Priya Nair" style="${CRM_FORM_INP}"/></div>
+      <div><label style="${CRM_FORM_LBL}">Title</label><input id="ctTitle" type="text" placeholder="e.g. Project Engineer" style="${CRM_FORM_INP}"/></div>
+    </div>
+    <div><label style="${CRM_FORM_LBL}">Company</label><input id="ctCompany" type="text" placeholder="e.g. ENOC" style="${CRM_FORM_INP}"/></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><label style="${CRM_FORM_LBL}">Email</label><input id="ctEmail" type="email" placeholder="name@company.com" style="${CRM_FORM_INP}"/></div>
+      <div><label style="${CRM_FORM_LBL}">Phone</label><input id="ctPhone" type="text" placeholder="+971 …" style="${CRM_FORM_INP}"/></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><label style="${CRM_FORM_LBL}">Follow-up due</label><input id="ctFollowDue" type="date" style="${CRM_FORM_INP}"/></div>
+      <div><label style="${CRM_FORM_LBL}">Follow-up note</label><input id="ctFollowNote" type="text" placeholder="e.g. QC clearance follow-up" style="${CRM_FORM_INP}"/></div>
+    </div>`, 'mktSaveContact()', 'Add contact'));
+}
+async function mktSaveContact() {
+  const name = _cv('ctName').trim();
+  if (!name) { showToast('Name is required', 'warn'); return; }
+  const payload = {
+    name, title: _cv('ctTitle').trim() || null, company: _cv('ctCompany').trim() || null,
+    email: _cv('ctEmail').trim() || null, phone: _cv('ctPhone').trim() || null,
+    follow_up_due: _cv('ctFollowDue') || null, follow_up_note: _cv('ctFollowNote').trim() || null,
+  };
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+  let row;
+  try { row = CrmMap.contact(await CrmAPI.contactCreate(payload)); }
+  catch {
+    row = { id: 'CT-' + String(MktContactsData.contacts.length + 1).padStart(3, '0'), name, title: payload.title || '', company: payload.company || '', email: payload.email || '', phone: payload.phone || '', lastContact: '', followUpDue: payload.follow_up_due || '', followUpNote: payload.follow_up_note || '', avatarBg: '#6366f1', initials };
+  }
+  MktContactsData.contacts.push(row);
+  closeCRMModal();
+  showToast('Contact added', 'success');
+  renderMktContacts();
+}
+
+/* ═══ New pre-qualification ═══ */
+function mktNewPrequal() {
+  openCRMModal(crmFormShell('New pre-qualification', `
+    <div><label style="${CRM_FORM_LBL}">Authority</label><input id="pqAuthority" type="text" placeholder="e.g. ADNOC" style="${CRM_FORM_INP}"/></div>
+    <div><label style="${CRM_FORM_LBL}">Category</label><input id="pqCategory" type="text" placeholder="e.g. Pressure Vessel Fabricator (ASME VIII)" style="${CRM_FORM_INP}"/></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><label style="${CRM_FORM_LBL}">Status</label>
+        <select id="pqStatus" style="${CRM_FORM_INP}"><option value="pending" selected>Pending</option><option value="active">Active</option><option value="expiring">Expiring soon</option><option value="expired">Expired</option></select>
+      </div>
+      <div><label style="${CRM_FORM_LBL}">Contact</label><input id="pqContact" type="text" placeholder="vendors@authority.ae" style="${CRM_FORM_INP}"/></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><label style="${CRM_FORM_LBL}">Submitted</label><input id="pqSubmitted" type="date" style="${CRM_FORM_INP}"/></div>
+      <div><label style="${CRM_FORM_LBL}">Expiry</label><input id="pqExpiry" type="date" style="${CRM_FORM_INP}"/></div>
+    </div>`, 'mktSavePrequal()', 'Add registration'));
+}
+async function mktSavePrequal() {
+  const authority = _cv('pqAuthority').trim();
+  if (!authority) { showToast('Authority is required', 'warn'); return; }
+  const payload = {
+    authority, category: _cv('pqCategory').trim() || null, status: _cv('pqStatus') || 'pending',
+    submitted: _cv('pqSubmitted') || null, expiry: _cv('pqExpiry') || null, contact: _cv('pqContact').trim() || null,
+  };
+  let row;
+  try { row = CrmMap.prequal(await CrmAPI.prequalCreate(payload)); }
+  catch {
+    const daysLeft = payload.expiry ? Math.ceil((new Date(payload.expiry) - new Date()) / 86400000) : null;
+    row = { id: 'PQ-' + String(MktPrequalData.registrations.length + 1).padStart(3, '0'), authority, category: payload.category || '', status: payload.status, submitted: payload.submitted || '', expiry: payload.expiry || '—', daysLeft, contact: payload.contact || '' };
+  }
+  MktPrequalData.registrations.push(row);
+  closeCRMModal();
+  showToast('Pre-qualification registered', 'success');
+  renderMktPreQual();
 }
 
 function renderMktActionQueue() {
