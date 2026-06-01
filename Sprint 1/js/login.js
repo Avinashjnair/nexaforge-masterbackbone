@@ -378,25 +378,21 @@ const DEPT_NAV = {
     { page: 'maintenance', label: 'Maintenance',      group: 'Technical' },
   ],
   production:  [
-    { page: 'dashboard',  label: 'Dashboard',  group: 'Overview' },
     { page: 'projects',   label: 'Projects',   group: 'Overview' },
     { page: 'production', label: 'Production', group: 'Operations' },
     { page: 'inventory',  label: 'Store',      group: 'Operations' },
     { page: 'analytics',  label: 'Analytics',  group: 'Technical' },
   ],
   qc: [
-    { page: 'dashboard',  label: 'Dashboard',      group: 'Overview' },
     { page: 'projects',   label: 'Projects',       group: 'Overview' },
     { page: 'quality',    label: 'Quality Control',group: 'Operations' },
     { page: 'analytics',  label: 'Analytics',      group: 'Technical' },
   ],
   marketing: [
-    { page: 'dashboard', label: 'Dashboard',      group: 'Overview' },
     { page: 'marketing', label: 'Marketing & CRM',group: 'Operations' },
     { page: 'projects',  label: 'Projects',       group: 'Overview' },
   ],
   finance: [
-    { page: 'dashboard',   label: 'Finance Home',       group: 'Overview' },
     { page: 'projects',    label: 'Projects',            group: 'Overview' },
     { page: 'finance',     label: 'Finance',             group: 'Finance Ops' },
     { page: 'procurement', label: 'Procurement & AP',    group: 'Finance Ops' },
@@ -405,33 +401,49 @@ const DEPT_NAV = {
     { page: 'hr',          label: 'Payroll / HR',         group: 'Reports' },
   ],
   hr: [
-    { page: 'dashboard', label: 'Dashboard',    group: 'Overview' },
     { page: 'hr',        label: 'HR & Workforce',group: 'Operations' },
     { page: 'analytics', label: 'Analytics',     group: 'Technical' },
   ],
   procurement: [
-    { page: 'dashboard',   label: 'Dashboard',   group: 'Overview' },
     { page: 'procurement', label: 'Procurement', group: 'Operations' },
     { page: 'inventory',   label: 'Store',       group: 'Operations' },
     { page: 'projects',    label: 'Projects',    group: 'Overview' },
   ],
   store: [
-    { page: 'dashboard', label: 'Dashboard',        group: 'Overview' },
     { page: 'inventory', label: 'Store & Inventory', group: 'Operations' },
     { page: 'projects',  label: 'Projects',          group: 'Overview' },
   ],
   welding: [
-    { page: 'dashboard', label: 'Dashboard',   group: 'Overview' },
     { page: 'welding',   label: 'Welding / WPS',group: 'Technical' },
     { page: 'quality',   label: 'Quality',     group: 'Operations' },
     { page: 'projects',  label: 'Projects',    group: 'Overview' },
   ],
   analytics: [
-    { page: 'dashboard', label: 'Dashboard',   group: 'Overview' },
     { page: 'analytics', label: 'Analytics',   group: 'Operations' },
     { page: 'projects',  label: 'Projects',    group: 'Overview' },
   ],
 };
+
+// Department → the page that IS the module the user should land on at login.
+// GM keeps the cross-department command centre (`dashboard`). Values are
+// navigate() page keys (note qc→quality, store→inventory).
+const DEPT_HOME = {
+  gm:          'dashboard',
+  production:  'production',
+  qc:          'quality',
+  finance:     'finance',
+  marketing:   'marketing',
+  hr:          'hr',
+  procurement: 'procurement',
+  store:       'inventory',
+  welding:     'welding',
+  analytics:   'analytics',
+};
+function deptHome(dept) {
+  return DEPT_HOME[(dept || '').toLowerCase()] || 'dashboard';
+}
+window.deptHome = deptHome;
+window.DEPT_HOME = DEPT_HOME;
 
 function _bootDeptSession(user, demoMode = false) {
   // UAT-01: Purge previous session state before re-initializing
@@ -477,10 +489,8 @@ function _bootDeptSession(user, demoMode = false) {
   if (roleEl)   roleEl.textContent   = (user.role.length <= 2 ? user.role.toUpperCase() : user.role.charAt(0).toUpperCase() + user.role.slice(1)) + ' access';
 
   window.dispatchEvent(new CustomEvent('nf:auth:login'));
-  if (user.department === 'production') navigate('production');
-  else if (user.department === 'qc') navigate('quality');
-  else if (user.department === 'finance') navigate('finance');
-  else navigate('dashboard');
+  // Land directly in the user's module (GM → command centre). See DEPT_HOME.
+  navigate(deptHome(user.department));
   showToast(`Welcome, ${user.name}`, 'success', 3000);
 }
 

@@ -44,7 +44,10 @@ const DEPARTMENTS = ["gm", "marketing", "production", "qc", "finance", "store", 
 
 // Sidebar page → departments allowed (gm always allowed — checked separately)
 const DEPT_PAGE_MAP = {
-  dashboard:   DEPARTMENTS,
+  // Cross-department command centre — GM only. Other departments land directly
+  // in their own module (see frontend DEPT_HOME), so they no longer get a
+  // generic Dashboard nav entry.
+  dashboard:   ["gm"],
   projects:    DEPARTMENTS,
   marketing:   ["marketing"],
   production:  ["production"],
