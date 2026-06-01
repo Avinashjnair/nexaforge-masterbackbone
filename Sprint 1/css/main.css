@@ -667,3 +667,64 @@ input:focus, select:focus, textarea:focus {
 @media (max-width: 480px) {
   .metric-grid { grid-template-columns: 1fr; }
 }
+
+/* ── V3 reusable content card — image tile w/ overlay title + meta/badge ── */
+.content-card {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-glass), var(--shadow-glass-inset);
+  transition: transform 0.2s ease, box-shadow 0.25s ease;
+}
+.content-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-glass-hover), var(--shadow-glass-inset); }
+.content-card__media { position: relative; aspect-ratio: 16 / 9; overflow: hidden; }
+.content-card__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.content-card__media::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(20,20,46,0.55) 0%, transparent 55%);
+}
+.content-card__overlay { position: absolute; left: 14px; right: 14px; bottom: 12px; z-index: 1; color: #fff; }
+.content-card__title { font-family: var(--font-display); font-size: 15px; font-weight: 700; text-shadow: 0 1px 4px rgba(0,0,0,0.30); }
+.content-card__body { padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.content-card__meta { font-size: 11px; color: var(--text-muted); }
+.content-card__badge {
+  font-size: 10px; font-weight: 600; padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-warm-bg); color: var(--accent-warm);
+}
+
+/* ── Accessibility fallbacks ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .greeting-orb { animation: none; }
+}
+/* Honour the OS "reduce transparency" setting — fall back to solid V2 surfaces,
+   no blur, no ambient orbs. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-bg:        #FAFAFA;
+    --glass-bg-strong: #F4F2FA;
+    --glass-bg-subtle: #F0EEF7;
+    --glass-bg-hover:  #EDEAF5;
+    --glass-blur:      none;
+    --glass-blur-heavy:none;
+    --glass-blur-sm:   none;
+    --bg-panel:        #F6F5FB;
+    --bg-card:         #FAFAFA;
+    --bg-card-inner:   #F3F2F8;
+    --bg-hover:        #EDEAF5;
+    --bg-surface:      #FAFAFA;
+    --bg-subtle:       #F3F2F8;
+    --bg-elevated:     #F6F5FB;
+    --bg-active:       #EDEAF5;
+  }
+  body { background: #E8E6F0; }
+  body::before, body::after { display: none; }
+}
