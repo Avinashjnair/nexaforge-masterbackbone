@@ -57,7 +57,9 @@ const DEPT_PAGE_MAP = {
   finance:     ["finance"],
   hr:          ["hr"],
   welding:     ["welding"],
-  analytics:   ["gm"],
+  // Analytics is no longer a standalone department — every department gets a
+  // dept-scoped analytics view inside its module (GM sees the full cockpit).
+  analytics:   DEPARTMENTS,
 };
 
 // Blocks access unless the user's department matches one of the allowed departments.

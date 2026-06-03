@@ -755,7 +755,7 @@ function renderProdSubPage(subPage) {
     'mrf':            renderProdInventory,
     'quality':        renderProdQuality,
     'skills':         renderProdSkillMatrix,
-    'analytics':      renderProdAnalytics,
+    'analytics':      () => { renderProdAnalytics(); mountAnaCockpit('production', { append: true, heading: 'Cross-functional analytics' }); },
     'schedule-builder': renderProdScheduleBuilder,
   };
 
@@ -1101,11 +1101,12 @@ const WELD_SIDEBAR_NAV = [
   { page: 'joints',   label: 'Weld Register',   group: 'EXECUTION', icon: 'M3 17l6-6 4 4 8-8', access: { quality:'view', production:'edit' } },
   { page: 'iot',      label: 'IIoT Live',       group: 'EXECUTION', icon: 'M12 2a10 10 0 100 20 10 10 0 000-20zm0 4a6 6 0 016 6h-2a4 4 0 00-4-4V6z', access: { production:'edit' } },
   { page: 'nde',      label: 'NDE / NDT',       group: 'EXECUTION', icon: 'M11 4a7 7 0 105.29 11.71l4 4 1.42-1.42-4-4A7 7 0 0011 4zm0 2a5 5 0 110 10 5 5 0 010-10z', access: { quality:'edit', production:'view' } },
+  { page: 'analytics', label: 'Analytics',      group: 'EXECUTION', icon: 'M3 17l4-5 4 3 3-6 3 3M3 17h14', access: { quality:'view', production:'view', hr:'view' } },
 ];
 
 const WELD_LABELS = {
   overview:'Overview', wps:'WPS Library', pqr:'PQR Records', wpq:'WPQ Passports',
-  joints:'Weld Register', iot:'IIoT Live', nde:'NDE / NDT',
+  joints:'Weld Register', iot:'IIoT Live', nde:'NDE / NDT', analytics:'Analytics',
 };
 
 // Department that launched the welding sub-module — drives section visibility + "Back to" target.
@@ -1411,6 +1412,7 @@ const FIN_SIDEBAR_NAV = [
   { page: 'cashflow',    label: 'Cash Flow',          group: 'Analysis' },
   { page: 'overhead',    label: 'Overhead Absorption', group: 'Analysis' },
   { page: 'reports',     label: 'Reports',            group: 'Analysis' },
+  { page: 'analytics',   label: 'Analytics',          group: 'Analysis' },
 ];
 
 const FIN_NAV_ICONS = {
@@ -1423,6 +1425,7 @@ const FIN_NAV_ICONS = {
   cashflow: `<path d="M17 10a7 7 0 01-7 7M3 10a7 7 0 017-7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M13 17l4-4M7 3l-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>`,
   overhead: `<circle cx="6.5" cy="6.5" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="13.5" cy="13.5" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M14.5 5.5l-9 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>`,
   reports: `<path d="M14 2H6a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2z" stroke="currentColor" stroke-width="1.4"/><path d="M7 6h6M7 10h6M7 14h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>`,
+  analytics: `<path d="M3 17l4-5 4 3 3-6 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 17h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>`,
 };
 
 function enterFinanceModule() {
@@ -1558,6 +1561,7 @@ function renderFinSubPage(subPage) {
     cashflow:   'Cash Flow',
     overhead:   'Overhead Absorption',
     reports:    'Reports',
+    analytics:  'Analytics',
   };
   document.getElementById('breadcrumb').textContent = `Finance › ${labels[subPage] || subPage}`;
 
@@ -1572,6 +1576,7 @@ function renderFinSubPage(subPage) {
     overhead:   'renderFinOverhead',
     budget:     'renderFinBudget',
     reports:    'renderFinReports',
+    analytics:  'renderFinAnalytics',
   };
   const fnName = fnMap[subPage];
   if (typeof window[fnName] === 'function') {
@@ -1599,6 +1604,7 @@ let _preMktPage = 'dashboard';
 const MKT_NAV_ICONS = {
   'overview':          `<rect x="3" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="3" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="11" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="11" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/>`,
   'forecast':          `<path d="M3 15l4-5 4 3 3-6 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 15h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>`,
+  'analytics':         `<path d="M3 17l4-5 4 3 3-6 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 17h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>`,
   'pipeline':          `<circle cx="10" cy="5" r="2.5" stroke="currentColor" stroke-width="1.4"/><circle cx="3" cy="14" r="2.5" stroke="currentColor" stroke-width="1.4"/><circle cx="17" cy="14" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 7.5v3M10 10.5l-5 2M10 10.5l5 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>`,
   'tenders':           `<rect x="3" y="2" width="14" height="16" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M6 7h8M6 10h6M6 13h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>`,
   'clients':           `<circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M4 17c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>`,
@@ -1631,6 +1637,7 @@ const MKT_SIDEBAR_NAV = [
   { page: 'approvals',        label: 'Quote Approvals',      group: 'PROPOSALS' },
   { page: 'boq',              label: 'BOQ Ingestion',        group: 'PROPOSALS' },
   { page: 'activity',         label: 'Activity Log',         group: 'REPORTS' },
+  { page: 'analytics',        label: 'Analytics',            group: 'REPORTS' },
 ];
 
 const MKT_ACCENT = '#6366f1';
@@ -1721,6 +1728,7 @@ function renderMktSubPage(subPage) {
     calendar:'Bid Calendar', tenders:'Tender Tracker', prequalification:'Pre-Qualification',
     intelligence:'Competitor Intel', quote:'Quote Builder', quotelog:'Quote Log',
     approvals:'Quote Approvals', boq:'BOQ Ingestion', activity:'Activity Log',
+    analytics:'Analytics',
   };
   document.getElementById('breadcrumb').textContent = `Marketing › ${labels[subPage] || subPage}`;
 
@@ -1763,6 +1771,7 @@ function renderMktSubPage(subPage) {
     prequalification:renderMktPreQual,
     intelligence:    renderMktIntelligence,
     activity:        () => _callCRM(renderCRMActivity),
+    analytics:       renderMktAnalytics,
   };
 
   const fn = fnMap[subPage];
@@ -1954,7 +1963,7 @@ function renderHRSubPage(subPage) {
     'payroll':        renderHRPayroll,
     'expenses':       renderHRExpenses,
     'documents':      renderHRDocuments,
-    'analytics':      renderHRAnalytics,
+    'analytics':      () => { renderHRAnalytics(); mountAnaCockpit('hr', { append: true, heading: 'Cross-functional analytics' }); },
     'utilisation':    renderHRUtilisation,
   };
 

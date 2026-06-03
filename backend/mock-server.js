@@ -29,16 +29,20 @@ const getCookies = (req) => {
 const USERS = {
   'gm@nexaforge.com':          { name: 'General Manager',   role: 'gm',      dept: 'gm' },
   'production@nexaforge.com':  { name: 'Production Mgr',    role: 'manager', dept: 'production' },
+  'prod_lead@nexaforge.com':   { name: 'K. Suresh',         role: 'senior',  dept: 'production' },
+  'prod_operator@nexaforge.com':{ name: 'M. Al-Rashid',     role: 'user',    dept: 'production' },
   'qc@nexaforge.com':          { name: 'QC Manager',        role: 'manager', dept: 'qc' },
   'qc_lead@nexaforge.com':     { name: 'Sarah Ahmed',       role: 'senior',  dept: 'qc' },
   'qc_inspector@nexaforge.com':{ name: 'John Doe',          role: 'user',    dept: 'qc' },
   'procurement@nexaforge.com': { name: 'Procurement Mgr',   role: 'manager', dept: 'procurement' },
+  'proc_eng@nexaforge.com':    { name: 'R. Venkatesh',      role: 'senior',  dept: 'procurement' },
   'store@nexaforge.com':       { name: 'Store Manager',     role: 'manager', dept: 'store' },
   'finance@nexaforge.com':     { name: 'Finance Manager',   role: 'manager', dept: 'finance' },
   'marketing@nexaforge.com':   { name: 'Sales Manager',     role: 'manager', dept: 'marketing' },
+  'mkt_exec@nexaforge.com':    { name: 'M. Hassan',         role: 'senior',  dept: 'marketing' },
+  'mkt_coord@nexaforge.com':   { name: 'Layla Noor',        role: 'user',    dept: 'marketing' },
   'hr@nexaforge.com':          { name: 'HR Manager',        role: 'manager', dept: 'hr' },
-  'welding@nexaforge.com':     { name: 'Welding Engineer',  role: 'senior',  dept: 'welding' },
-  'analytics@nexaforge.com':   { name: 'Data Architect',    role: 'admin',   dept: 'analytics' }
+  'welding@nexaforge.com':     { name: 'Welding Engineer',  role: 'senior',  dept: 'welding' }
 };
 
 
@@ -153,6 +157,7 @@ app.get('/api/me/permissions', (req, res) => {
     marketing: [
       { page: 'marketing', label: 'Marketing & CRM',group: 'Operations' },
       { page: 'projects',  label: 'Projects',       group: 'Overview' },
+      { page: 'analytics', label: 'Analytics',      group: 'Technical' },
     ],
     finance: [
       { page: 'projects',    label: 'Projects',            group: 'Overview' },
@@ -171,19 +176,18 @@ app.get('/api/me/permissions', (req, res) => {
       { page: 'procurement', label: 'Procurement', group: 'Operations' },
       { page: 'inventory',   label: 'Store',       group: 'Operations' },
       { page: 'projects',    label: 'Projects',    group: 'Overview' },
+      { page: 'analytics',   label: 'Analytics',   group: 'Technical' },
     ],
     store: [
       { page: 'inventory', label: 'Store & Inventory', group: 'Operations' },
       { page: 'projects',  label: 'Projects',          group: 'Overview' },
+      { page: 'analytics', label: 'Analytics',         group: 'Technical' },
     ],
     welding: [
       { page: 'welding',   label: 'Welding / WPS',group: 'Technical' },
       { page: 'quality',   label: 'Quality',     group: 'Operations' },
       { page: 'projects',  label: 'Projects',    group: 'Overview' },
-    ],
-    analytics: [
-      { page: 'analytics', label: 'Analytics',   group: 'Operations' },
-      { page: 'projects',  label: 'Projects',    group: 'Overview' },
+      { page: 'analytics', label: 'Analytics',   group: 'Technical' },
     ],
   };
 

@@ -104,15 +104,13 @@ function renderLogin() {
 
             <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin:18px 0 12px;font-weight:700">Quick Access Departments</div>
             <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
-              <button type="button" onclick="quickAccess('production')" title="Production" class="quick-access-btn" data-c="#f97316"><span>PR</span></button>
+              <button type="button" onclick="toggleProdRoles(event)" title="Production" class="quick-access-btn" data-c="#f97316"><span>PR</span></button>
               <button type="button" onclick="toggleQCRoles(event)" title="Quality Control" class="quick-access-btn" data-c="#14b8a6"><span>QC</span></button>
-              <button type="button" onclick="quickAccess('procurement')" title="Procurement" class="quick-access-btn" data-c="#84cc16"><span>PC</span></button>
+              <button type="button" onclick="toggleProcRoles(event)" title="Procurement" class="quick-access-btn" data-c="#84cc16"><span>PC</span></button>
               <button type="button" onclick="quickAccess('store')" title="Store" class="quick-access-btn" data-c="#06b6d4"><span>ST</span></button>
               <button type="button" onclick="quickAccess('finance')" title="Finance" class="quick-access-btn" data-c="#f59e0b"><span>FN</span></button>
-              <button type="button" onclick="quickAccess('marketing')" title="Marketing" class="quick-access-btn" data-c="#8b5cf6"><span>MK</span></button>
+              <button type="button" onclick="toggleMktRoles(event)" title="Marketing" class="quick-access-btn" data-c="#8b5cf6"><span>MK</span></button>
               <button type="button" onclick="quickAccess('hr')" title="HR" class="quick-access-btn" data-c="#f43f5e"><span>HR</span></button>
-              <button type="button" onclick="quickAccess('welding')" title="Welding" class="quick-access-btn" data-c="#3b82f6"><span>WL</span></button>
-              <button type="button" onclick="quickAccess('analytics')" title="Analytics" class="quick-access-btn" data-c="#6366f1"><span>AN</span></button>
               <button type="button" onclick="quickAccess('gm')" title="General Manager" class="quick-access-btn" data-c="#103B2E"><span>GM</span></button>
             </div>
             <div id="qcRoleSelect" style="display:none;margin-top:12px;padding:12px;background:var(--bg-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-inset);text-align:center">
@@ -121,6 +119,29 @@ function renderLogin() {
                 <button type="button" onclick="quickAccessQC('qc_mgr')" class="nf-login-secondary" style="font-size:10px;padding:6px">QC Manager</button>
                 <button type="button" onclick="quickAccessQC('qc_lead')" class="nf-login-secondary" style="font-size:10px;padding:6px">Lead QC</button>
                 <button type="button" onclick="quickAccessQC('qc_field')" class="nf-login-secondary" style="font-size:10px;padding:6px">Field QC</button>
+              </div>
+            </div>
+            <div id="prodRoleSelect" style="display:none;margin-top:12px;padding:12px;background:var(--bg-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-inset);text-align:center">
+              <div style="font-size:10px;color:var(--text-muted);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">Select Production Account</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                <button type="button" onclick="quickAccessProd('prod_mgr')" class="nf-login-secondary" style="font-size:10px;padding:6px">Prod Manager</button>
+                <button type="button" onclick="quickAccessProd('prod_lead')" class="nf-login-secondary" style="font-size:10px;padding:6px">Shift Lead</button>
+                <button type="button" onclick="quickAccessProd('prod_operator')" class="nf-login-secondary" style="font-size:10px;padding:6px">Operator</button>
+              </div>
+            </div>
+            <div id="mktRoleSelect" style="display:none;margin-top:12px;padding:12px;background:var(--bg-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-inset);text-align:center">
+              <div style="font-size:10px;color:var(--text-muted);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">Select Marketing Account</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                <button type="button" onclick="quickAccessMkt('mkt_mgr')" class="nf-login-secondary" style="font-size:10px;padding:6px">Sales Manager</button>
+                <button type="button" onclick="quickAccessMkt('mkt_exec')" class="nf-login-secondary" style="font-size:10px;padding:6px">Sales Exec</button>
+                <button type="button" onclick="quickAccessMkt('mkt_coord')" class="nf-login-secondary" style="font-size:10px;padding:6px">Coordinator</button>
+              </div>
+            </div>
+            <div id="procRoleSelect" style="display:none;margin-top:12px;padding:12px;background:var(--bg-subtle);border-radius:var(--radius-md);box-shadow:var(--shadow-inset);text-align:center">
+              <div style="font-size:10px;color:var(--text-muted);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">Select Procurement Account</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <button type="button" onclick="quickAccessProc('proc_mgr')" class="nf-login-secondary" style="font-size:10px;padding:6px">Proc Manager</button>
+                <button type="button" onclick="quickAccessProc('proc_eng')" class="nf-login-secondary" style="font-size:10px;padding:6px">Proc Engineer</button>
               </div>
             </div>
           </div>
@@ -309,20 +330,30 @@ function enterDemoMode() {
 const DEPT_METADATA = {
   gm:           { name: 'General Manager',   role: 'gm',      email: 'gm@nexaforge.com' },
   production:   { name: 'Production Mgr',    role: 'manager', email: 'production@nexaforge.com' },
+  prod_lead:    { name: 'K. Suresh',         role: 'senior',  email: 'prod_lead@nexaforge.com', department: 'production' },
+  prod_operator:{ name: 'M. Al-Rashid',      role: 'user',    email: 'prod_operator@nexaforge.com', department: 'production' },
   qc:           { name: 'QC Manager',        role: 'manager', email: 'qc@nexaforge.com' },
   qc_lead:      { name: 'Sarah Ahmed',       role: 'senior',  email: 'qc_lead@nexaforge.com', department: 'qc' },
   qc_inspector: { name: 'John Doe',          role: 'user',    email: 'qc_inspector@nexaforge.com', department: 'qc' },
   procurement:  { name: 'Procurement Mgr',   role: 'manager', email: 'procurement@nexaforge.com' },
+  proc_eng:     { name: 'R. Venkatesh',      role: 'senior',  email: 'proc_eng@nexaforge.com', department: 'procurement' },
   store:        { name: 'Store Manager',     role: 'manager', email: 'store@nexaforge.com' },
   finance:      { name: 'Finance Manager',   role: 'manager', email: 'finance@nexaforge.com' },
   marketing:    { name: 'Sales Manager',     role: 'manager', email: 'marketing@nexaforge.com' },
+  mkt_exec:     { name: 'M. Hassan',         role: 'senior',  email: 'mkt_exec@nexaforge.com', department: 'marketing' },
+  mkt_coord:    { name: 'Layla Noor',        role: 'user',    email: 'mkt_coord@nexaforge.com', department: 'marketing' },
   hr:           { name: 'HR Manager',        role: 'manager', email: 'hr@nexaforge.com' },
-  welding:      { name: 'Welding Engineer',  role: 'senior',  email: 'welding@nexaforge.com' },
-  analytics:    { name: 'Data Architect',    role: 'admin',   email: 'analytics@nexaforge.com' }
+  welding:      { name: 'Welding Engineer',  role: 'senior',  email: 'welding@nexaforge.com' }
 };
 
 function toggleQCRoles(event) {
   event.preventDefault();
+  const prodEl = document.getElementById('prodRoleSelect');
+  const mktEl = document.getElementById('mktRoleSelect');
+  const procEl = document.getElementById('procRoleSelect');
+  if (prodEl) prodEl.style.display = 'none';
+  if (mktEl) mktEl.style.display = 'none';
+  if (procEl) procEl.style.display = 'none';
   const el = document.getElementById('qcRoleSelect');
   if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
@@ -337,6 +368,79 @@ function quickAccessQC(role) {
     quickAccess('qc_lead');
   } else if (role === 'qc_field') {
     quickAccess('qc_inspector');
+  }
+}
+
+function toggleProdRoles(event) {
+  event.preventDefault();
+  const qcEl = document.getElementById('qcRoleSelect');
+  const mktEl = document.getElementById('mktRoleSelect');
+  const procEl = document.getElementById('procRoleSelect');
+  if (qcEl) qcEl.style.display = 'none';
+  if (mktEl) mktEl.style.display = 'none';
+  if (procEl) procEl.style.display = 'none';
+  const el = document.getElementById('prodRoleSelect');
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function quickAccessProd(role) {
+  const el = document.getElementById('prodRoleSelect');
+  if (el) el.style.display = 'none';
+
+  if (role === 'prod_mgr') {
+    quickAccess('production');
+  } else if (role === 'prod_lead') {
+    quickAccess('prod_lead');
+  } else if (role === 'prod_operator') {
+    quickAccess('prod_operator');
+  }
+}
+
+function toggleMktRoles(event) {
+  event.preventDefault();
+  const qcEl = document.getElementById('qcRoleSelect');
+  const prodEl = document.getElementById('prodRoleSelect');
+  const procEl = document.getElementById('procRoleSelect');
+  if (qcEl) qcEl.style.display = 'none';
+  if (prodEl) prodEl.style.display = 'none';
+  if (procEl) procEl.style.display = 'none';
+  const el = document.getElementById('mktRoleSelect');
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function toggleProcRoles(event) {
+  event.preventDefault();
+  const qcEl = document.getElementById('qcRoleSelect');
+  const prodEl = document.getElementById('prodRoleSelect');
+  const mktEl = document.getElementById('mktRoleSelect');
+  if (qcEl) qcEl.style.display = 'none';
+  if (prodEl) prodEl.style.display = 'none';
+  if (mktEl) mktEl.style.display = 'none';
+  const el = document.getElementById('procRoleSelect');
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function quickAccessProc(role) {
+  const el = document.getElementById('procRoleSelect');
+  if (el) el.style.display = 'none';
+
+  if (role === 'proc_mgr') {
+    quickAccess('procurement');
+  } else if (role === 'proc_eng') {
+    quickAccess('proc_eng');
+  }
+}
+
+function quickAccessMkt(role) {
+  const el = document.getElementById('mktRoleSelect');
+  if (el) el.style.display = 'none';
+
+  if (role === 'mkt_mgr') {
+    quickAccess('marketing');
+  } else if (role === 'mkt_exec') {
+    quickAccess('mkt_exec');
+  } else if (role === 'mkt_coord') {
+    quickAccess('mkt_coord');
   }
 }
 
@@ -408,6 +512,7 @@ const DEPT_NAV = {
     { page: 'procurement', label: 'Procurement', group: 'Operations' },
     { page: 'inventory',   label: 'Store',       group: 'Operations' },
     { page: 'projects',    label: 'Projects',    group: 'Overview' },
+    { page: 'analytics',   label: 'Analytics',   group: 'Technical' },
   ],
   store: [
     { page: 'inventory', label: 'Store & Inventory', group: 'Operations' },
@@ -416,10 +521,6 @@ const DEPT_NAV = {
   welding: [
     { page: 'welding',   label: 'Welding / WPS',group: 'Technical' },
     { page: 'quality',   label: 'Quality',     group: 'Operations' },
-    { page: 'projects',  label: 'Projects',    group: 'Overview' },
-  ],
-  analytics: [
-    { page: 'analytics', label: 'Analytics',   group: 'Operations' },
     { page: 'projects',  label: 'Projects',    group: 'Overview' },
   ],
 };
@@ -488,9 +589,12 @@ function _bootDeptSession(user, demoMode = false) {
   if (nameEl)   nameEl.textContent   = user.name;
   if (roleEl)   roleEl.textContent   = (user.role.length <= 2 ? user.role.toUpperCase() : user.role.charAt(0).toUpperCase() + user.role.slice(1)) + ' access';
 
-  window.dispatchEvent(new CustomEvent('nf:auth:login'));
   // Land directly in the user's module (GM → command centre). See DEPT_HOME.
+  // Navigate BEFORE firing nf:auth:login: the event's loadPermissionsAndBuildSidebar()
+  // bails early when currentPage is already a module (production/quality/inventory/
+  // finance/hr), so its async sidebar rebuild can't clobber the module's own sidebar.
   navigate(deptHome(user.department));
+  window.dispatchEvent(new CustomEvent('nf:auth:login'));
   showToast(`Welcome, ${user.name}`, 'success', 3000);
 }
 
