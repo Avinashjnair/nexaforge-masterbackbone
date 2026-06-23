@@ -1,0 +1,33 @@
+version: "3.9"
+
+# Staging overrides — apply on top of docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.staging.yml up --build -d
+#
+# Differences from base:
+#   - API seeds the DB on first boot (SEED_DB=true)
+#   - NODE_ENV=staging
+#   - Fixed predictable secrets suitable for a local staging run
+#   - CORS allows the frontend dev server (Live Server default: 5500)
+
+services:
+  api:
+    environment:
+      NODE_ENV: staging
+      SEED_DB: "true"
+      JWT_SECRET: nexaforge-staging-jwt-secret-not-for-production
+      CORS_ORIGIN: "http://localhost:5500"
+    ports:
+      - "3000:3000"
+
+  postgres:
+    environment:
+      POSTGRES_DB: nexaforge
+      POSTGRES_USER: nexaforge_api
+      POSTGRES_PASSWORD: staging_password_123
+    ports:
+      - "5432:5432"
+
+  redis:
+    command: redis-server
+    ports:
+      - "6379:6379"

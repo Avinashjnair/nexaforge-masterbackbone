@@ -1,0 +1,194 @@
+/* ============================================================
+   NexaForge ERP — Store & Inventory Module Styles
+   ============================================================ */
+
+/* Metric Cards Glassmorphism */
+.metric-card--glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+.metric-card--glass:hover {
+  background: var(--glass-bg-strong);
+  border-color: var(--dept-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -8px var(--dept-accent-30);
+}
+
+/* ── Inv sub-tabs ── */
+.inv-tabs {
+  display: inline-flex;
+  gap: 2px;
+  background: var(--bg-card-inner);
+  border-radius: var(--radius-pill);
+  padding: 5px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow-inset);
+}
+.inv-tab {
+  height: 38px;
+  padding: 0 18px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  border: none;
+  background: transparent;
+  font-family: var(--font-body);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.inv-tab:hover { color: var(--text-secondary); }
+.inv-tab.active {
+  background: #FFFFFF;
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: var(--shadow-pill-active);
+}
+.inv-tab-count {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 99px;
+}
+.inv-tab-count.warn { background: var(--amber-bg); color: var(--amber); }
+.inv-tab-count.err  { background: var(--red-bg);   color: var(--red); }
+
+/* ── Quarantine card ── */
+.inv-qrn-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--red);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+  margin-bottom: 10px;
+}
+.inv-qrn-card:last-child { margin-bottom: 0; }
+.inv-qrn-card:hover { border-color: rgba(245,101,101,.5); transform: translateY(-1px); }
+.inv-qrn-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+/* ── Remnant card ── */
+.inv-remnant-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.inv-remnant-card:hover { border-color: var(--border-md); transform: translateY(-1px); }
+
+/* ── Inventory modal ── */
+.inv-modal-inner {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-md);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.inv-modal-header {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: sticky; top: 0;
+  background: var(--bg-elevated);
+  z-index: 1;
+}
+.inv-modal-body {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Inv form fields ── */
+.inv-field label {
+  font-size: 11px; color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 0.09em; display: block; margin-bottom: 5px;
+}
+.inv-field input,
+.inv-field select,
+.inv-field textarea {
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-md);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  outline: none;
+  font-family: var(--font-body);
+  resize: vertical;
+  box-sizing: border-box;
+}
+.inv-field input:focus,
+.inv-field select:focus,
+.inv-field textarea:focus { border-color: var(--brand); }
+.inv-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.inv-field-row.thirds { grid-template-columns: 1fr 1fr 1fr; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .inv-tabs { gap: 1px; }
+  .inv-tab  { padding: 6px 12px; font-size: 12px; }
+}
+@media (max-width: 600px) {
+  .inv-field-row        { grid-template-columns: 1fr; }
+  .inv-field-row.thirds { grid-template-columns: 1fr; }
+}
+
+/* ── Search & Filter Controls ── */
+.search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-input-wrap .search-icon {
+  position: absolute;
+  left: 10px;
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.search-input-wrap .search-input {
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 6px 10px 6px 32px;
+  font-size: 13px;
+  color: var(--text-primary);
+  outline: none;
+  transition: all 0.15s ease;
+}
+.search-input-wrap .search-input:focus {
+  border-color: var(--brand);
+  background: var(--bg-elevated);
+  box-shadow: 0 0 0 3px var(--brand-10);
+}
+
+.table--dense th,
+.table--dense td {
+  padding: 8px 12px;
+}

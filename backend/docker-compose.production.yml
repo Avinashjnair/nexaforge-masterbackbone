@@ -1,0 +1,106 @@
+version: "3.9"
+
+# Production overrides — apply on top of docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
+#
+# Key differences from base:
+#   - No exposed ports for PostgreSQL, Redis, RabbitMQ — internal only
+#   - Resource limits on all services
+#   - NODE_ENV=production, no seed data
+#   - MQTT TLS enabled
+#   - MinIO SSL enabled
+#   - DB/Redis/MQ credentials sourced from .env (never hardcoded)
+
+services:
+  api:
+    environment:
+      NODE_ENV: production
+      SEED_DB: "false"
+      # All secrets must be in .env — see .env.example
+      MQTT_URL: ${MQTT_URL:-mqtts://mosquitto:8883}
+      MQTT_TLS: "true"
+      MQTT_CA_CERT: /app/mosquitto/certs/ca.crt
+      MQTT_REJECT_UNAUTHORIZED: "true"
+      MINIO_USE_SSL: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 512M
+        reservations:
+          memory: 256M
+    # No port exposure in production — Nginx proxies from host
+    ports: []
+    restart: always
+
+  postgres:
+    # In production, prefer DigitalOcean Managed PostgreSQL.
+    # If self-hosting, keep this service but remove port exposure.
+    ports: []   # never expose DB port to host in production
+    environment:
+      POSTGRES_DB: ${DB_NAME:-nexaforge}
+      POSTGRES_USER: ${DB_USER:-nexaforge_api}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+    restart: always
+
+  redis:
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+    ports: []   # never expose Redis port to host in production
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    restart: always
+
+  rabbitmq:
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-nexaforge}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD must be set}
+    ports: []   # never expose AMQP port to host in production
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    restart: always
+
+  mosquitto:
+    # Switch to TLS config in production
+    volumes:
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_logs:/mosquitto/log
+      - ./mosquitto-tls.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/certs:/mosquitto/certs:ro
+    ports:
+      - "8883:8883"   # MQTT TLS only — plaintext 1883 not exposed
+      - "9443:9443"   # WebSocket TLS
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+    restart: always
+
+  minio:
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY must be set}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY must be set}
+    ports: []   # MinIO console not exposed in production — access via SSH tunnel if needed
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    restart: always
