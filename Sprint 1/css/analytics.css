@@ -1,0 +1,246 @@
+/* ============================================================
+   NexaForge ERP — Analytics & KPIs Module Styles
+   ============================================================ */
+
+/* ── Analytics sub-tabs ── */
+.ana-tabs {
+  display: inline-flex;
+  gap: 8px;
+  background: transparent;
+  border-radius: var(--radius-pill);
+  padding: 0;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  box-shadow: none;
+}
+.ana-tab {
+  height: 38px;
+  padding: 0 18px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  border: 1px solid var(--border-md);
+  background: transparent;
+  font-family: var(--font-body);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+.ana-tab:hover { color: var(--text-secondary); border-color: var(--border-strong); }
+.ana-tab.active {
+  background: #FFFFFF;
+  color: var(--text-primary);
+  font-weight: 600;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(140,120,160,0.16);
+}
+
+/* ── Role-selector strip ── */
+.role-strip {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.role-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-md);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 13px; font-weight: 400;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font-body);
+}
+.role-btn:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.role-btn.active {
+  background: var(--accent-dim);
+  border-color: var(--brand);
+  color: var(--brand);
+  font-weight: 500;
+}
+.role-icon {
+  width: 28px; height: 28px;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+
+/* ── KPI scorecard table ── */
+.kpi-scorecard { width: 100%; border-collapse: collapse; }
+.kpi-scorecard th {
+  text-align: left; padding: 9px 14px;
+  font-size: 10px; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 0.09em; border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated); white-space: nowrap;
+}
+.kpi-scorecard td {
+  padding: 11px 14px; font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.kpi-scorecard tbody tr { transition: background 0.1s; cursor: pointer; }
+.kpi-scorecard tbody tr:hover { background: var(--bg-hover); }
+.kpi-scorecard tbody tr:last-child td { border-bottom: none; }
+
+/* Trend indicator */
+.trend-up     { color: var(--green); font-weight: 600; }
+.trend-down   { color: var(--red);   font-weight: 600; }
+.trend-stable { color: var(--text-muted); }
+
+/* RAG (Red / Amber / Green) status pill */
+.rag {
+  display: inline-flex; align-items: center;
+  gap: 5px; padding: 3px 10px;
+  border-radius: 99px; font-size: 11px; font-weight: 600;
+}
+.rag-green  { background: var(--green-bg);  color: var(--green); }
+.rag-amber  { background: var(--amber-bg);  color: var(--amber); }
+.rag-red    { background: var(--red-bg);    color: var(--red);   }
+.rag-blue   { background: var(--blue-bg);   color: var(--blue);  }
+.rag-dot    { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+/* ── Trend sparklines (SVG-based) ── */
+.sparkline-svg { overflow: visible; }
+.spark-line { fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.spark-area { opacity: 0.12; }
+.spark-dot  { }
+
+/* ── OEE gauge ── */
+.oee-gauge-wrap {
+  display: flex; flex-direction: column;
+  align-items: center; padding: 12px 0;
+}
+.oee-gauge-svg { overflow: visible; }
+.gauge-track { fill: none; stroke: var(--bg-elevated); stroke-width: 12; }
+.gauge-fill  { fill: none; stroke-width: 12; stroke-linecap: round; transition: stroke-dasharray 1s ease; }
+.gauge-label {
+  font-family: var(--font-display);
+  font-size: 28px; font-weight: 800;
+  fill: var(--text-primary, #f0f2f5);
+}
+.gauge-sub {
+  font-size: 11px;
+  fill: var(--text-muted, #4d5968);
+}
+.oee-components {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px; width: 100%; margin-top: 12px;
+}
+.oee-comp {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px; text-align: center;
+}
+.oee-comp-val {
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 700;
+}
+.oee-comp-lbl { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.09em; }
+
+/* ── COPQ waterfall ── */
+.waterfall-wrap { overflow-x: auto; }
+.waterfall-bar-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.waterfall-bar-row:last-child { border-bottom: none; }
+.waterfall-label { min-width: 180px; color: var(--text-primary); flex-shrink: 0; }
+.waterfall-bar-track {
+  flex: 1; height: 22px; background: var(--bg-elevated);
+  border-radius: 4px; overflow: hidden; position: relative; min-width: 80px;
+}
+.waterfall-bar-fill {
+  height: 100%; border-radius: 4px;
+  display: flex; align-items: center;
+  padding: 0 8px; font-size: 11px;
+  font-weight: 600; white-space: nowrap;
+  transition: width 0.6s ease;
+}
+.waterfall-value { min-width: 70px; text-align: right; font-family: var(--font-mono); font-size: 12px; }
+.waterfall-pct   { min-width: 40px; text-align: right; font-size: 11px; color: var(--text-muted); }
+
+/* ── Heatmap calendar ── */
+.heatmap-grid {
+  display: grid;
+  gap: 3px;
+}
+.heatmap-cell {
+  border-radius: 3px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.heatmap-cell:hover { opacity: 0.7; }
+
+/* ── Trend chart (pure SVG) ── */
+.trend-chart-wrap {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* ── Export / report builder ── */
+.report-section-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.report-section-row:hover { border-color: var(--border-md); }
+.report-section-row:last-child { margin-bottom: 0; }
+.report-checkbox {
+  width: 16px; height: 16px;
+  border-radius: 4px;
+  border: 2px solid var(--border-strong);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: background 0.15s, border-color 0.15s;
+  cursor: pointer;
+}
+.report-checkbox.checked {
+  background: var(--brand);
+  border-color: var(--brand);
+}
+.report-section-icon { font-size: 18px; flex-shrink: 0; }
+.report-section-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.report-section-desc { font-size: 11px; color: var(--text-muted); }
+.report-section-pages { font-size: 11px; color: var(--text-muted); margin-left: auto; flex-shrink: 0; }
+
+/* ── Analytics modal ── */
+.ana-modal-inner {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-md);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  max-height: 92vh; overflow-y: auto;
+}
+.ana-modal-header {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: flex-start;
+  position: sticky; top: 0;
+  background: var(--bg-elevated); z-index: 2;
+}
+.ana-modal-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; }
+
+/* ── Responsive ── */
+@media (max-width: 960px) {
+  .ana-tabs { gap: 1px; }
+  .ana-tab  { padding: 6px 12px; font-size: 12px; }
+  .oee-components { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px) {
+  .role-strip { gap: 6px; }
+  .role-btn   { padding: 6px 10px; font-size: 12px; }
+  .oee-components { grid-template-columns: 1fr; }
+}

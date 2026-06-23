@@ -1,0 +1,149 @@
+version: "3.9"
+
+services:
+  # ── PostgreSQL 16 with TimescaleDB ─────────────────────────────
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: nexaforge_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nexaforge
+      POSTGRES_USER: nexaforge_api
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change_me_in_production}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexaforge_api -d nexaforge"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis 7 ────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: nexaforge_redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── RabbitMQ 3 ─────────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: nexaforge_rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"   # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ── Mosquitto MQTT broker ──────────────────────────────────────
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: nexaforge_mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"     # MQTT plaintext (dev only — disabled in TLS config)
+      - "8883:8883"     # MQTT TLS (staging / production)
+      - "9002:9001"     # WebSocket plaintext (dev only)
+      - "9443:9443"     # WebSocket TLS (staging / production)
+    volumes:
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_logs:/mosquitto/log
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      # Mount TLS certs when MQTT_TLS=true — generate with: bash scripts/gen-mqtt-certs.sh
+      - ./mosquitto/certs:/mosquitto/certs:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h localhost -t '$$SYS/#' -C 1 -W 3 || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 3
+
+  # ── MinIO (S3-compatible file storage) ─────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: nexaforge_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"   # Console UI
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ── Node.js API ─────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexaforge_api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: nexaforge
+      DB_USER: nexaforge_api
+      DB_PASSWORD: ${DB_PASSWORD:-change_me_in_production}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      MQTT_URL: mqtt://mosquitto:1883
+      JWT_SECRET: ${JWT_SECRET:-replace_me}
+      JWT_ACCESS_EXPIRES: ${JWT_ACCESS_EXPIRES:-15m}
+      JWT_REFRESH_EXPIRES: ${JWT_REFRESH_EXPIRES:-7d}
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-nexaforge-docs}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+  mosquitto_data:
+  mosquitto_logs:
+  minio_data:

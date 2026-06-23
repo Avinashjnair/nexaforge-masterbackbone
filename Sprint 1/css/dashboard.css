@@ -1,0 +1,244 @@
+/* ── Dashboard specific styles ── */
+
+/* KPI strip */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.kpi-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.25s ease, transform 0.18s;
+  border: none;
+}
+.kpi-card:hover { box-shadow: var(--shadow-card-hover); transform: translateY(-2px); }
+.kpi-accent-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+.kpi-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  margin-bottom: 10px;
+}
+.kpi-value {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.kpi-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Dashboard grid */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.dash-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+/* Activity feed */
+.activity-feed { display: flex; flex-direction: column; }
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--glass-border-subtle);
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+.activity-body { flex: 1; min-width: 0; }
+.activity-text {
+  font-size: 13px;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+.activity-text strong { font-weight: 500; color: var(--text-primary); }
+.activity-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex; gap: 8px; align-items: center;
+}
+
+/* Mini sparkline placeholder */
+.sparkline {
+  height: 40px;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+}
+.spark-bar {
+  flex: 1;
+  border-radius: 2px 2px 0 0;
+  background: var(--brand);
+  opacity: 0.4;
+  transition: opacity 0.15s;
+}
+.spark-bar:last-child { opacity: 1; }
+.spark-bar:hover { opacity: 0.8; }
+
+/* Project pipeline cards */
+.pipeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pipeline-item {
+  background: var(--bg-card-inner);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: var(--shadow-sm);
+}
+.pipeline-item:hover { box-shadow: var(--shadow-card); transform: translateY(-1px); }
+.pipeline-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+.pipeline-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.pipeline-client { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.pipeline-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.pipeline-pct { font-size: 11px; font-weight: 600; color: var(--text-secondary); min-width: 30px; }
+
+/* Phase timeline strip */
+.phase-strip {
+  display: flex;
+  gap: 3px;
+  margin-top: 10px;
+}
+.phase-dot {
+  flex: 1;
+  height: 4px;
+  border-radius: 99px;
+  background: var(--bg-hover);
+}
+.phase-dot.done  { background: var(--green); }
+.phase-dot.active { background: var(--brand); }
+.phase-dot.pending { background: var(--bg-elevated); }
+
+/* Alerts panel */
+.alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.alert-item:last-child { margin-bottom: 0; }
+.alert-warn { background: var(--amber-bg); border: 1px solid rgba(245,158,11,0.2); color: var(--amber); }
+.alert-error { background: var(--red-bg); border: 1px solid rgba(245,101,101,0.2); color: var(--red); }
+.alert-info { background: var(--blue-bg); border: 1px solid rgba(74,158,255,0.2); color: var(--blue); }
+.alert-icon { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; }
+.alert-body { flex: 1; }
+.alert-title { font-weight: 500; margin-bottom: 1px; }
+.alert-desc { opacity: 0.8; font-size: 11px; }
+
+/* OEE gauge visual */
+.oee-display {
+  text-align: center;
+  padding: 8px 0;
+}
+.oee-circle {
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  border: 6px solid var(--bg-elevated);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 8px;
+}
+.oee-circle svg {
+  position: absolute;
+  top: -6px; left: -6px;
+  width: 112px; height: 112px;
+  transform: rotate(-90deg);
+}
+.oee-num {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 960px) {
+  .dash-grid { grid-template-columns: 1fr; }
+  .dash-grid-3 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .dash-grid-3 { grid-template-columns: 1fr; }
+}
+
+/* ── V3 greeting hero — time-of-day welcome with a warm gradient orb ── */
+.greeting-hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 22px 26px;
+  margin-bottom: 20px;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(120deg, rgba(255,255,255,0.50), rgba(255,255,255,0.28));
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-glass), var(--shadow-glass-inset);
+}
+.greeting-orb {
+  flex-shrink: 0;
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 30%, #F7C9A6 0%, #E8837C 45%, #C4A0E8 100%);
+  box-shadow: 0 6px 22px rgba(232,131,124,0.40);
+  animation: greetOrb 7s ease-in-out infinite;
+}
+@keyframes greetOrb {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-4px) scale(1.04); }
+}
+.greeting-line { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.02em; }
+.greeting-line strong { color: var(--brand); }
+.greeting-sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+@media (max-width: 600px) {
+  .greeting-line { font-size: 18px; }
+  .greeting-orb { width: 48px; height: 48px; }
+}

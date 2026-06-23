@@ -1,0 +1,385 @@
+/* ============================================================
+   NexaForge ERP — Finance Module Styles
+   ============================================================ */
+
+/* ── Finance sub-tabs ── */
+.fin-tabs {
+  display: inline-flex;
+  gap: 8px;
+  background: transparent;
+  border-radius: var(--radius-pill);
+  padding: 0;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  box-shadow: none;
+}
+.fin-tab {
+  height: 38px;
+  padding: 0 18px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  border: 1px solid var(--border-md);
+  background: transparent;
+  font-family: var(--font-body);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+.fin-tab:hover { color: var(--text-secondary); border-color: var(--border-strong); }
+.fin-tab.active {
+  background: #FFFFFF;
+  color: var(--text-primary);
+  font-weight: 600;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(140,120,160,0.16);
+}
+.fin-tab-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: var(--bg-active);
+  color: var(--text-secondary);
+}
+.fin-tab-pill.overdue { background: var(--red-bg); color: var(--red); }
+.fin-tab-pill.due     { background: var(--amber-bg); color: var(--amber); }
+
+/* ── P&L / job costing table ── */
+.pnl-table { width: 100%; border-collapse: collapse; }
+.pnl-table th {
+  text-align: right;
+  padding: 9px 14px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+  white-space: nowrap;
+}
+.pnl-table th:first-child { text-align: left; }
+.pnl-table td {
+  padding: 10px 14px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  text-align: right;
+  font-family: var(--font-mono);
+}
+.pnl-table td:first-child {
+  text-align: left;
+  font-family: var(--font-body);
+  color: var(--text-primary);
+}
+.pnl-table tbody tr { transition: background 0.1s; cursor: pointer; }
+.pnl-table tbody tr:hover { background: var(--bg-hover); }
+.pnl-table tr.pnl-section td,
+.pnl-table tr.pnl-section th {
+  background: var(--bg-elevated);
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.pnl-table tr.pnl-total td {
+  font-weight: 700;
+  font-size: 14px;
+  border-top: 2px solid var(--border-md);
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.pnl-table tr.pnl-total td:first-child { font-family: var(--font-display); font-size: 14px; }
+.pnl-var-pos { color: var(--green); }
+.pnl-var-neg { color: var(--red); }
+.pnl-neutral  { color: var(--text-secondary); }
+
+/* Cost variance bar */
+.var-bar-wrap { display: flex; align-items: center; gap: 8px; }
+.var-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-elevated);
+  border-radius: 99px;
+  overflow: visible;
+  position: relative;
+}
+.var-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.5s ease;
+  max-width: 100%;
+}
+.var-bar-mid {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 12px;
+  background: var(--border-strong);
+  border-radius: 1px;
+}
+
+/* ── Milestone billing timeline ── */
+.milestone-list { display: flex; flex-direction: column; gap: 0; }
+.milestone-item {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.milestone-item:last-child { border-bottom: none; }
+.ms-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 28px;
+}
+.ms-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+.ms-line {
+  width: 2px;
+  flex: 1;
+  min-height: 20px;
+  background: var(--border);
+  margin-top: 3px;
+}
+.ms-done    .ms-dot { background: var(--green);  border-color: var(--green); }
+.ms-invoiced .ms-dot { background: var(--blue);  border-color: var(--blue); }
+.ms-due     .ms-dot { background: var(--amber);  border-color: var(--amber); }
+.ms-pending .ms-dot { background: transparent;   border-color: var(--border-strong); }
+.ms-overdue .ms-dot { background: var(--red);    border-color: var(--red); box-shadow: 0 0 6px rgba(245,101,101,.4); }
+
+.ms-body { flex: 1; min-width: 0; }
+.ms-name  { font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 3px; }
+.ms-meta  { font-size: 11px; color: var(--text-muted); display: flex; gap: 12px; flex-wrap: wrap; }
+.ms-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+.ms-amount {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+}
+.ms-pct { font-size: 11px; color: var(--text-muted); }
+
+/* ── Invoice cards (AR/AP) ── */
+.invoice-list { display: flex; flex-direction: column; gap: 8px; }
+.invoice-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 13px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.invoice-card:hover { border-color: var(--border-md); background: var(--bg-hover); }
+.invoice-card.inv-overdue { border-left: 3px solid var(--red); }
+.invoice-card.inv-due     { border-left: 3px solid var(--amber); }
+.invoice-card.inv-paid    { border-left: 3px solid var(--green); }
+.invoice-card.inv-draft   { border-left: 3px solid var(--border-strong); }
+.inv-ref  { font-family: var(--font-mono); font-size: 11px; color: var(--brand); flex-shrink: 0; min-width: 90px; }
+.inv-body { flex: 1; min-width: 0; }
+.inv-name { font-size: 13px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.inv-meta { font-size: 11px; color: var(--text-muted); display: flex; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
+.inv-amount {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+  text-align: right;
+  min-width: 90px;
+}
+.inv-status { flex-shrink: 0; }
+
+/* ── Cash flow chart (SVG) ── */
+.cashflow-chart {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+}
+.cf-bar {
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.cf-bar:hover { opacity: 0.75; }
+.cf-axis-label {
+  font-size: 9px;
+  fill: var(--text-muted, #4d5968);
+  font-family: var(--font-mono);
+}
+.cf-gridline { stroke: rgba(255,255,255,0.05); }
+
+/* ── P&L mini charts (sparklines) ── */
+.fin-sparkline {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 32px;
+}
+.fin-spark-bar {
+  flex: 1;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.4s ease, opacity 0.15s;
+  cursor: pointer;
+}
+.fin-spark-bar:hover { opacity: 0.7; }
+
+/* ── Overhead / absorption ── */
+.overhead-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.overhead-row:last-child { border-bottom: none; }
+.overhead-label { flex: 1; color: var(--text-primary); }
+.overhead-budget { min-width: 90px; text-align: right; font-family: var(--font-mono); color: var(--text-secondary); }
+.overhead-actual { min-width: 90px; text-align: right; font-family: var(--font-mono); font-weight: 600; }
+.overhead-var    { min-width: 80px; text-align: right; font-family: var(--font-mono); font-size: 12px; }
+.overhead-abs    { min-width: 80px; text-align: right; font-size: 12px; }
+
+/* ── Finance modal ── */
+.fin-modal-inner {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-md);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  max-height: 92vh;
+  overflow-y: auto;
+}
+.fin-modal-header {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: sticky; top: 0;
+  background: var(--bg-elevated);
+  z-index: 2;
+}
+.fin-modal-body {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.fin-field label {
+  font-size: 11px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.09em;
+  display: block; margin-bottom: 5px;
+}
+.fin-field input,
+.fin-field select,
+.fin-field textarea {
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-md);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  outline: none;
+  font-family: var(--font-body);
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+.fin-field input:focus,
+.fin-field select:focus,
+.fin-field textarea:focus { border-color: var(--brand); }
+.fin-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* ── Project selector strip (re-use prod pattern) ── */
+/* Already defined in production.css — just use .proj-select-strip & .proj-chip */
+
+/* ── DSO / Aging indicator ── */
+.aging-band {
+  display: flex;
+  height: 12px;
+  border-radius: 99px;
+  overflow: hidden;
+  gap: 2px;
+}
+.aging-seg { border-radius: 3px; transition: width 0.5s; }
+
+/* ── Budget management ── */
+.bud-status {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 99px;
+}
+.bud-status-approved { background: rgba(72,199,116,.15); color: var(--green); border: 1px solid rgba(72,199,116,.3); }
+.bud-status-pending  { background: rgba(255,180,0,.15);  color: var(--amber); border: 1px solid rgba(255,180,0,.3); }
+.bud-status-draft    { background: var(--bg-elevated);   color: var(--text-muted); border: 1px solid var(--border); }
+
+.bud-alert-chip {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--amber);
+  background: rgba(255,180,0,.12);
+  border: 1px solid rgba(255,180,0,.3);
+  padding: 3px 10px;
+  border-radius: 99px;
+}
+
+.bud-alert-row { background: rgba(255,180,0,.04); }
+.bud-alert-row:hover { background: rgba(255,180,0,.08) !important; }
+
+.bud-alert-item {
+  padding: 12px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+}
+
+/* ── Report type selector ── */
+.fin-report-type {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s;
+}
+.fin-report-type:last-child { border-bottom: none; }
+.fin-report-type:hover { background: var(--bg-hover); }
+.fin-report-type.active { background: var(--bg-active); border-right: 3px solid var(--brand); }
+
+/* ── Responsive ── */
+@media (max-width: 960px) {
+  .fin-tabs { gap: 1px; }
+  .fin-tab  { padding: 6px 12px; font-size: 12px; }
+  .pnl-table th:nth-child(n+4),
+  .pnl-table td:nth-child(n+4) { display: none; }
+}
+@media (max-width: 640px) {
+  .fin-field-row { grid-template-columns: 1fr; }
+  .invoice-card  { flex-wrap: wrap; gap: 8px; }
+  .inv-ref       { min-width: unset; }
+}
