@@ -618,9 +618,110 @@ const QCData = {
     ],
     fpy_target: 95,
     fpy_actual: 93.8
-  }
+  },
+
+  /* NCR monthly trend — loaded from API; empty array = derive from ncr array client-side */
+  ncrTrends: [],
 };
 
+
+/* ── QC API loader — populates QCData from backend (no-op in demo mode) ── */
+async function _loadQCFromAPI() {
+  if (typeof AppState !== 'undefined' && AppState.isDemoMode) return;
+  try {
+    const [ncrRes, projectsRes, calibRes, complaintsRes, trendRes] = await Promise.allSettled([
+      QCAPI.ncrList({ limit: 200 }),
+      ProjectsAPI.list(),
+      QCAPI.calibrationList({ limit: 200 }),
+      QCAPI.complaintList({ limit: 200 }),
+      QCAPI.ncrTrends({ from: new Date(Date.now() - 365*86400000).toISOString().slice(0,10) }),
+    ]);
+
+    if (trendRes.status === 'fulfilled' && Array.isArray(trendRes.value) && trendRes.value.length) {
+      QCData.ncrTrends = trendRes.value; // [{ month, opened, closed }]
+    }
+
+    if (ncrRes.status === 'fulfilled') {
+      const raw = ncrRes.value.ncrs || ncrRes.value || [];
+      if (raw.length) {
+        const sevMap = { critical: 'high', major: 'medium', minor: 'low' };
+        QCData.ncr = raw.map(r => ({
+          id: r.ncr_no || r.id,
+          _dbId: r.id,
+          title: r.title || '',
+          description: r.description || '',
+          severity: sevMap[r.severity] || 'low',
+          status: ['closed', 'voided'].includes(r.status) ? 'closed' : 'open',
+          rcaStatus: r.rca_completed ? 'done' : r.status === 'rework' ? 'in-progress' : 'pending',
+          project: r.project_no || r.project_id || '',
+          dateRaised: (r.created_at || '').slice(0, 10),
+          raisedBy: r.raised_by_name || '',
+          assignedTo: r.assigned_to_name || '',
+          dueDate: r.due_date || '',
+          type: r.defect_type || 'General',
+          comments: [],
+        }));
+      }
+    }
+
+    if (projectsRes.status === 'fulfilled') {
+      const raw = projectsRes.value.projects || projectsRes.value || [];
+      if (raw.length) {
+        QCData.projects = raw.map(p => ({
+          id: p.project_no || p.id,
+          name: p.name || '',
+          client: p.client_name || '',
+          yield: p.fpy || 95,
+          openNCRs: QCData.ncr.filter(n => n.project === (p.project_no || p.id) && n.status === 'open').length,
+          pendingRFIs: 0,
+          itpProgress: p.progress_pct || 0,
+          pqmRef: p.pqm_ref || '',
+        }));
+      }
+    }
+
+    if (calibRes.status === 'fulfilled') {
+      const raw = calibRes.value.data || calibRes.value || [];
+      if (raw.length) {
+        QCData.calibration = raw.map(r => ({
+          id: r.id, instrument: r.instrument_id || r.description || '',
+          description: r.description || '', serial: r.serial_no || '',
+          location: r.location || '', lastCal: (r.last_calibrated || '').slice(0, 10),
+          nextDue: (r.next_due || '').slice(0, 10),
+          status: r.status === 'overdue' ? 'expired' : r.status || 'ok',
+          cert: r.certificate_ref || '', range: r.range || '', accuracy: r.accuracy || '',
+          responsible: r.responsible || '',
+        }));
+      }
+    }
+
+    if (complaintsRes.status === 'fulfilled') {
+      const raw = complaintsRes.value.complaints || complaintsRes.value || [];
+      if (raw.length) {
+        QCData.complaints = raw.map(r => ({
+          id: r.complaint_no || r.id,
+          date: (r.received_date || r.created_at || '').slice(0, 10),
+          customer: r.client_name || '',
+          project: r.project_no || '',
+          category: r.category || 'General',
+          severity: r.severity || 'minor',
+          status: r.status || 'open',
+          subject: r.description || '',
+          description: r.description || '',
+          receivedBy: r.assigned_to_name || '',
+          receivedVia: 'Email',
+          actionTaken: r.root_cause || '',
+          targetDate: (r.target_date || '').slice(0, 10),
+          closedDate: (r.resolved_date || '').slice(0, 10) || null,
+          comments: [],
+          capa: null,
+        }));
+      }
+    }
+  } catch (e) {
+    // Silent — seed data remains
+  }
+}
 
 /* ── QC Workflow Handlers ───────────────────────────────────── */
 
@@ -644,7 +745,8 @@ function qcNavigate(subPage, params = {}) {
 }
 window.qcNavigate = qcNavigate; // Explicit export
 
-function renderQC_control_centre() {
+async function renderQC_control_centre() {
+  await _loadQCFromAPI();
   const el = document.getElementById('pageContent');
   const openNCRs = QCData.ncr.filter(n => n.status === 'open').length;
   const overdueCal = QCData.calibration.filter(c => c.status === 'expired').length;
@@ -3922,12 +4024,24 @@ function renderQC_analytics() {
   const el = document.getElementById('pageContent');
   const a = QCData.analytics;
 
+  // Derive Pareto from real NCR data when available; fall back to seed
+  if (QCData.ncr.length > 0) {
+    const counts = {};
+    QCData.ncr.forEach(n => {
+      const t = n.type || 'Unclassified';
+      counts[t] = (counts[t] || 0) + 1;
+    });
+    a.defects_pareto = Object.entries(counts)
+      .map(([type, count]) => ({ type, count, cost: count * 4800 }))
+      .sort((a, b) => b.count - a.count);
+  }
+
   const openNCRs   = QCData.ncr.filter(n => n.status === 'open').length;
   const closedNCRs = QCData.ncr.filter(n => n.status === 'closed').length;
   const totalNCRs  = QCData.ncr.length;
   const totalCopq  = a.copq_trends.reduce((s, v) => s + v, 0);
-  const maxPareto  = Math.max(...a.defects_pareto.map(d => d.count));
-  const totalDefects = a.defects_pareto.reduce((s, d) => s + d.count, 0);
+  const maxPareto  = Math.max(...a.defects_pareto.map(d => d.count), 1);
+  const totalDefects = a.defects_pareto.reduce((s, d) => s + d.count, 0) || 1;
 
   // Cumulative % for pareto line
   let cumulative = 0;
@@ -4066,6 +4180,74 @@ function renderQC_analytics() {
       </div>
     </div>
   `;
+  // ── NCR Trend chart ──────────────────────────────────────────
+  // Derive monthly trends from loaded NCR data (client-side grouping)
+  (() => {
+    // Prefer backend-sourced monthly trends; fall back to client-side derivation
+    let trends = {};
+    if (QCData.ncrTrends && QCData.ncrTrends.length) {
+      QCData.ncrTrends.forEach(t => { trends[t.month] = { opened: t.opened, closed: t.closed }; });
+    } else {
+      QCData.ncr.forEach(n => {
+        const d = n.raised || n.date || n.created_at || '';
+        if (!d) return;
+        const month = d.slice(0, 7);
+        if (!trends[month]) trends[month] = { opened: 0, closed: 0 };
+        trends[month].opened++;
+        if (n.status === 'closed') trends[month].closed++;
+      });
+    }
+
+    // Also fold in seed analytics if no real NCRs
+    const months = Object.keys(trends).sort();
+    if (!months.length) return; // skip entirely if no data
+
+    const maxOpened = Math.max(...months.map(m => trends[m].opened), 1);
+    const trendHTML = months.map(m => {
+      const { opened, closed } = trends[m];
+      const shortMonth = new Date(m + '-01').toLocaleDateString('en-GB', { month:'short', year:'2-digit' });
+      return `
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:36px">
+          <div style="width:100%;display:flex;flex-direction:column;align-items:center;gap:2px;height:80px;justify-content:flex-end">
+            <div style="width:60%;height:${Math.round((opened/maxOpened)*70)}px;background:var(--red);opacity:0.8;border-radius:3px 3px 0 0;min-height:${opened?3:0}px" title="${opened} opened"></div>
+            <div style="width:60%;height:${Math.round((closed/maxOpened)*70)}px;background:var(--green);opacity:0.7;border-radius:3px 3px 0 0;min-height:${closed?2:0}px;margin-top:2px" title="${closed} closed"></div>
+          </div>
+          <div style="font-size:8px;color:var(--text-muted);text-align:center">${shortMonth}</div>
+          <div style="font-size:9px;font-weight:600;color:var(--text-primary)">${opened}</div>
+        </div>`;
+    }).join('');
+
+    const totalOpened = months.reduce((s,m) => s + trends[m].opened, 0);
+    const totalClosed = months.reduce((s,m) => s + trends[m].closed, 0);
+    const closeRate   = totalOpened ? Math.round((totalClosed / totalOpened) * 100) : 0;
+
+    const trendCard = document.createElement('div');
+    trendCard.style.cssText = 'grid-column:1/-1;margin-top:0';
+    trendCard.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">NCR Monthly Trend</span>
+          <div style="display:flex;gap:14px;font-size:11px">
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:var(--red);border-radius:2px;opacity:0.8"></span>Opened</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:var(--green);border-radius:2px;opacity:0.7"></span>Closed</span>
+          </div>
+        </div>
+        <div style="padding:16px 20px">
+          <div style="display:flex;gap:4px;align-items:flex-end;min-height:100px">
+            ${trendHTML}
+          </div>
+          <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border-subtle);display:flex;gap:20px;font-size:11px;color:var(--text-muted)">
+            <span>Total opened (period): <b style="color:var(--red)">${totalOpened}</b></span>
+            <span>Total closed: <b style="color:var(--green)">${totalClosed}</b></span>
+            <span>Closure rate: <b style="color:${closeRate >= 80 ? 'var(--green)' : closeRate >= 50 ? 'var(--amber)' : 'var(--red)'}">${closeRate}%</b></span>
+            <span>${months.length} month(s) of data</span>
+          </div>
+        </div>
+      </div>`;
+
+    el.querySelector('div[style*="grid-template-columns:2fr 1fr"]')?.after(trendCard);
+  })();
+
   mountAnaCockpit('qc', { append: true, heading: 'Cross-functional analytics' });
 }
 window.renderQC_analytics = renderQC_analytics;

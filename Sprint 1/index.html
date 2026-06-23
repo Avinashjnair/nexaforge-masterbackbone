@@ -25,9 +25,10 @@
   })();
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="css/main.css?v=7.1"/>
-  <link rel="stylesheet" href="css/sidebar.css?v=7.1"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/main.css?v=8.0"/>
+  <link rel="stylesheet" href="css/sidebar.css?v=8.0"/>
   <link rel="stylesheet" href="css/dashboard.css?v=6.0"/>
   <link rel="stylesheet" href="css/production.css?v=6.0"/>
   <link rel="stylesheet" href="css/quality.css?v=6.0"/>
@@ -38,20 +39,20 @@
   <link rel="stylesheet" href="css/hr.css?v=7.0"/>
   <link rel="stylesheet" href="css/welding.css?v=6.0"/>
   <link rel="stylesheet" href="css/analytics.css?v=6.0"/>
-  <link rel="stylesheet" href="css/s16-design.css?v=7.0"/>
+  <link rel="stylesheet" href="css/s16-design.css?v=7.1"/>
   <link rel="stylesheet" href="css/bento-theme.css?v=6.0"/>
   <link rel="stylesheet" href="css/qc-reports.css?v=4.0"/>
 </head>
 <body data-dept="gm">
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
+    <div class="sidebar-brand" onclick="exitActiveModule()" title="Back to main menu" role="button" tabindex="0">
       <div class="brand-mark">
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-          <rect x="2" y="2" width="11" height="11" rx="2" fill="var(--brand)"/>
-          <rect x="15" y="2" width="11" height="11" rx="2" fill="var(--brand)" opacity="0.5"/>
-          <rect x="2" y="15" width="11" height="11" rx="2" fill="var(--brand)" opacity="0.5"/>
-          <rect x="15" y="15" width="11" height="11" rx="2" fill="var(--brand)"/>
+          <rect x="2" y="2" width="11" height="11" rx="2" fill="#fff"/>
+          <rect x="15" y="2" width="11" height="11" rx="2" fill="#fff" opacity="0.55"/>
+          <rect x="2" y="15" width="11" height="11" rx="2" fill="#fff" opacity="0.55"/>
+          <rect x="15" y="15" width="11" height="11" rx="2" fill="#fff"/>
         </svg>
       </div>
       <div class="brand-text">
@@ -128,8 +129,8 @@
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="js/api.js?v=4.0"></script>
   <script src="js/socket-client.js?v=3.0"></script>
-  <script src="js/login.js?v=3.6"></script>
-  <script src="js/app.js?v=4.6"></script>
+  <script src="js/login.js?v=3.7"></script>
+  <script src="js/app.js?v=4.7"></script>
   <script src="js/dashboard.js?v=3.0"></script>
   <script src="js/bento-ui.js?v=3.0"></script>
   <script src="js/dept-dashboards.js?v=3.0"></script>

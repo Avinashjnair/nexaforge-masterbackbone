@@ -277,6 +277,15 @@ const ProdData = {
   /* ── In-Process Scrap Log ── */
   scrapLog: [],
 
+  /* ── Baseline snapshots per project — loaded from API ── */
+  baselines: {}, // { [pid]: { label, created_at, steps_snapshot: [{step_order, start_date, end_date, planned_hours}] } }
+
+  /* ── OEE data — populated by API loader; seed values used in demo/fallback ── */
+  oee: {
+    aggregate: { availability: 92, performance: 88, quality: 96, oee: 77.7 },
+    workCentres: [], // filled from API; falls back to workCentres array util values
+  },
+
   /* ── COPQ Waterfall Data ── */
   copq: [
     { label: 'Scrap Metal', value: 12500, color: 'var(--red)' },
@@ -320,11 +329,79 @@ function formatDuration(sec) {
 
 startStationTimers();
 
+/* ── Production API loader — populates ProdData from backend (no-op in demo mode) ── */
+async function _loadProdFromAPI() {
+  if (typeof AppState !== 'undefined' && AppState.isDemoMode) return;
+  try {
+    const [projectsRes, wcRes, oeeRes] = await Promise.allSettled([
+      ProjectsAPI.list({ status: 'active' }),
+      api.get('/work-centres'),
+      ProductionAPI.oeeAll({ days: 30 }),
+    ]);
+
+    if (projectsRes.status === 'fulfilled') {
+      const raw = projectsRes.value.projects || projectsRes.value || [];
+      if (raw.length) AppState.projects = raw;
+    }
+
+    if (wcRes.status === 'fulfilled') {
+      const raw = wcRes.value.work_centres || wcRes.value || [];
+      if (raw.length) {
+        ProdData.workCentres = raw.map(w => ({
+          id: w.id, name: w.name || '', dept: w.department || 'Production',
+          status: w.status === 'running' ? 'busy' : w.status === 'down' ? 'down' : 'idle',
+          util: w.utilisation_pct || 0,
+          machine: w.machine_type || w.name || '',
+          shift: w.shift || 'Day',
+          staff: w.staff_count || 0,
+        }));
+      }
+    }
+
+    if (oeeRes.status === 'fulfilled' && oeeRes.value) {
+      const d = oeeRes.value;
+      if (d.aggregate) ProdData.oee.aggregate = d.aggregate;
+      if (d.work_centres && d.work_centres.length) ProdData.oee.workCentres = d.work_centres;
+    }
+
+    // Load BOM + routing for currently selected project
+    if (ProdData.selectedProject) {
+      const [bomRes, routingRes] = await Promise.allSettled([
+        BomAPI.tree(ProdData.selectedProject),
+        RoutingAPI.list(ProdData.selectedProject),
+      ]);
+
+      if (bomRes.status === 'fulfilled' && bomRes.value) {
+        const root = bomRes.value.bom || bomRes.value;
+        if (root) ProdData.bom[ProdData.selectedProject] = [root];
+      }
+
+      if (routingRes.status === 'fulfilled') {
+        const steps = routingRes.value.steps || routingRes.value || [];
+        if (steps.length) {
+          ProdData.routing[ProdData.selectedProject] = steps.map(s => ({
+            id: s.id, step: s.step_order, name: s.name || '',
+            wc: s.work_centre_name || s.work_centre_id || '',
+            plannedHrs: s.planned_hours || 0,
+            actualHrs: s.actual_hours || 0,
+            status: s.status || 'pending',
+            assignedTo: s.assigned_employee_id || '',
+            scheduledDate: s.scheduled_date || null,
+          }));
+        }
+      }
+    }
+  } catch (e) {
+    // Silent — seed data remains
+  }
+}
+
 /* ── Main renderer — delegates to sidebar context switcher ── */
 async function renderProduction() {
   // This is now called by enterProductionModule() in app.js
   // which rebuilds the sidebar with Production-exclusive nav
   // The actual sub-page rendering is done by renderProdSubPage()
+  await _loadProdFromAPI();
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -925,24 +1002,40 @@ function renderProdWorkCentres() {
 
       <div style="display:flex;flex-direction:column;gap:16px" class="stagger-in">
         <div class="card">
-          <div class="card-header"><span class="card-title">OEE Breakdown</span></div>
+          <div class="card-header">
+            <span class="card-title">OEE Breakdown</span>
+            <span style="font-size:10px;color:var(--text-muted)">30-day rolling</span>
+          </div>
           <div style="display:flex;flex-direction:column;gap:12px;padding:0 2px 4px">
             ${[
-              { label: 'Availability', val: 92, col: 'var(--brand)' },
-              { label: 'Performance',  val: 88, col: 'var(--green)' },
-              { label: 'Quality',      val: 98, col: 'var(--green)' },
+              { label: 'Availability', val: ProdData.oee.aggregate.availability, col: 'var(--brand)' },
+              { label: 'Performance',  val: ProdData.oee.aggregate.performance,  col: 'var(--green)' },
+              { label: 'Quality',      val: ProdData.oee.aggregate.quality,      col: 'var(--green)' },
             ].map(o => `
               <div>
                 <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
                   <span style="color:var(--text-secondary)">${o.label}</span>
-                  <span style="font-weight:600;color:var(--text-primary)">${o.val}%</span>
+                  <span style="font-weight:600;color:${o.val >= 85 ? 'var(--green)' : o.val >= 65 ? 'var(--amber)' : 'var(--red)'}">${o.val}%</span>
                 </div>
                 <div class="progress-bar" style="height:5px"><div class="progress-fill" style="width:${o.val}%;background:${o.col}"></div></div>
               </div>`).join('')}
             <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;justify-content:space-between;align-items:center">
               <span style="font-size:12px;font-weight:600;color:var(--text-secondary)">Overall OEE</span>
-              <span style="font-size:18px;font-weight:700;color:var(--brand)">79.4%</span>
+              <span style="font-size:18px;font-weight:700;color:${ProdData.oee.aggregate.oee >= 85 ? 'var(--green)' : ProdData.oee.aggregate.oee >= 65 ? 'var(--amber)' : 'var(--red)'}">
+                ${ProdData.oee.aggregate.oee}%
+              </span>
             </div>
+            ${ProdData.oee.workCentres.length > 0 ? `
+            <div style="border-top:1px solid var(--border);padding-top:10px">
+              <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;font-weight:700;margin-bottom:6px">Per Work Centre</div>
+              ${ProdData.oee.workCentres.map(wc => {
+                const col = wc.oee >= 85 ? 'var(--green)' : wc.oee >= 65 ? 'var(--amber)' : 'var(--red)';
+                return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:3px 0;border-bottom:1px solid var(--border-faint)">
+                  <span style="color:var(--text-secondary);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${wc.name}</span>
+                  <span style="font-weight:700;color:${col};font-family:var(--font-mono)">${wc.oee}%</span>
+                </div>`;
+              }).join('')}
+            </div>` : ''}
           </div>
         </div>
 
@@ -2446,10 +2539,48 @@ function setGanttZoom(val) {
   renderProdSubPage('schedule');
 }
 
-function renderProdSchedule() {
+async function setGanttBaseline(pid) {
+  if (!pid) return;
+  if (typeof AppState !== 'undefined' && AppState.isDemoMode) {
+    // Demo mode: snapshot from current seed schedule
+    const steps = (ProdData.schedule[pid] || []).map(t => ({
+      step_order: t.step, name: t.name, planned_hours: (t.dur || 1) * 40, start_date: null, end_date: null,
+    }));
+    ProdData.baselines[pid] = { label: 'Demo Baseline', created_at: new Date().toISOString(), steps_snapshot: steps };
+    renderProdSubPage('schedule');
+    return;
+  }
+  try {
+    const result = await RoutingAPI.saveBaseline(pid);
+    ProdData.baselines[pid] = result;
+    typeof showToast === 'function' && showToast(`Baseline set: ${result.label}`, 'success');
+    renderProdSubPage('schedule');
+  } catch (err) {
+    typeof showToast === 'function' && showToast('Could not save baseline — check routing steps exist', 'error');
+  }
+}
+window.setGanttBaseline = setGanttBaseline;
+
+async function _loadGanttBaseline(pid) {
+  if (!pid || (typeof AppState !== 'undefined' && AppState.isDemoMode)) return;
+  if (ProdData.baselines[pid]) return; // already loaded
+  try {
+    const b = await RoutingAPI.getBaseline(pid);
+    ProdData.baselines[pid] = b;
+  } catch { /* no baseline set yet — silent */ }
+}
+
+async function renderProdSchedule() {
   const pid      = ProdData.selectedProject;
   const rawTasks = ProdData.schedule[pid] || [];
   const content  = document.getElementById('pageContent');
+
+  // Load baseline silently in background; re-render if it arrives
+  if (!ProdData.baselines[pid]) {
+    _loadGanttBaseline(pid).then(() => {
+      if (ProdData.baselines[pid]) renderProdSchedule();
+    });
+  }
 
   const role = AppState.currentUser?.role || 'manager';
   const isOperator = role === 'user';
@@ -2529,11 +2660,28 @@ function renderProdSchedule() {
     const floatL   = barLeft + barWidth;
     const barCls   = { done: 'gantt-bar-done', active: 'gantt-bar-active', pending: 'gantt-bar-pending', blocked: 'gantt-bar-blocked' }[task.status] || 'gantt-bar-pending';
 
+    // Baseline ghost bar (if a baseline snapshot exists for this project and task step)
+    const baseline = ProdData.baselines[pid];
+    let ghostBar = '';
+    if (baseline && baseline.steps_snapshot) {
+      const bStep = baseline.steps_snapshot.find(s => s.step_order === task.step || s.name === task.name);
+      if (bStep && bStep.planned_hours) {
+        const bDurWeeks = (bStep.planned_hours / 40) || task.dur;
+        const bLeft  = barLeft; // same ES position — ghost shows original planned duration
+        const bWidth = Math.max(Math.round(bDurWeeks * factor * colW), 8);
+        const slipPx = barWidth - bWidth;
+        const slipLabel = slipPx > 20 && task.dur > bDurWeeks
+          ? `<span style="position:absolute;right:-28px;top:50%;transform:translateY(-50%);font-size:8px;color:var(--amber);font-weight:700;white-space:nowrap">+${Math.round(task.dur - bDurWeeks)}w</span>`
+          : '';
+        ghostBar = `<div style="position:absolute;left:${bLeft}px;width:${bWidth}px;height:18px;top:50%;transform:translateY(-50%);z-index:2;border:1.5px dashed rgba(148,163,184,0.45);border-radius:4px;background:rgba(148,163,184,0.06)" title="Baseline: ${bDurWeeks.toFixed(1)}w planned">${slipLabel}</div>`;
+      }
+    }
+
     return `
       <div class="gantt-row" id="grow-${task.id}">
         <div class="gantt-task-label" style="width:${LW}px;min-width:${LW}px;flex-shrink:0">
           <div class="gantt-task-name">${task.name}${task.isCritical ? ' <span style="color:var(--red);font-size:8px;font-weight:700;vertical-align:middle">●</span>' : ''}</div>
-          <div class="gantt-task-meta">${task.wc} · ${task.dur}w${task.slack > 0 ? ` · Float: ${task.slack}w` : ''}</div>
+          <div class="gantt-task-meta">${task.wc} · ${task.dur}w${task.slack > 0 ? ` · Float: ${task.slack}w` : ''}${baseline ? ' · <span style="color:var(--text-muted)">baseline shown</span>' : ''}</div>
         </div>
         <div class="gantt-timeline" style="width:${totalW}px;min-width:${totalW}px;flex:none;position:relative;height:46px">
           <div style="display:flex;position:absolute;inset:0">
@@ -2541,6 +2689,7 @@ function renderProdSchedule() {
           </div>
           ${idx === 0 && todayCol >= 0 && todayCol < COLS ? `<div class="gantt-today-line" style="left:${todayPx}px"></div>` : ''}
           ${floatW > 3 ? `<div style="position:absolute;left:${floatL}px;width:${floatW}px;height:5px;top:50%;margin-top:10px;background:rgba(232,98,42,0.12);border:1px dashed var(--brand);border-radius:2px;z-index:2"></div>` : ''}
+          ${ghostBar}
           <div class="gantt-bar ${barCls}${task.isCritical ? ' critical-path' : ''}"
                id="gbar-${task.id}"
                style="left:${barLeft}px;width:${barWidth}px;position:absolute;top:50%;transform:translateY(-50%);z-index:3">
@@ -2603,6 +2752,7 @@ function renderProdSchedule() {
           <div style="display:flex;align-items:center;gap:8px"><span style="width:12px;height:12px;background:var(--brand);border-radius:3px;flex-shrink:0"></span>In Progress</div>
           <div style="display:flex;align-items:center;gap:8px"><span style="width:12px;height:12px;background:var(--green);border-radius:3px;flex-shrink:0"></span>Completed</div>
           <div style="display:flex;align-items:center;gap:8px"><span style="width:12px;height:12px;border:1.5px dashed var(--border-md);border-radius:3px;flex-shrink:0"></span>Float / Slack</div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="width:12px;height:12px;border:1.5px dashed rgba(148,163,184,0.55);border-radius:3px;flex-shrink:0;background:rgba(148,163,184,0.08)"></span>Baseline</div>
         </div>
       </div>
     </div>
@@ -2618,7 +2768,7 @@ function renderProdSchedule() {
             ${zoomHTML}
           </div>
           ${!isOperator ? `
-          <button class="btn btn-secondary btn-sm" onclick="showToast('Schedule baselined','success')">Baseline</button>
+          <button class="btn btn-secondary btn-sm" onclick="setGanttBaseline('${pid}')">${ProdData.baselines[pid] ? '↺ Re-baseline' : 'Set Baseline'}</button>
           <button class="btn btn-primary btn-sm" onclick="renderProdSubPage('schedule-builder')">+ New Schedule</button>
           ` : ''}
         </div>

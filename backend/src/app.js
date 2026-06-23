@@ -27,6 +27,8 @@ const inspectionsRouter = require("./routes/inspections");
 const wpsRouter = require("./routes/wps");
 const wpqRouter = require("./routes/wpq");
 const weldJointsRouter = require("./routes/weldJoints");
+const pwhtRouter       = require("./routes/pwht");
+const consumablesRouter = require("./routes/consumables");
 const clientsRouter = require("./routes/clients");
 const opportunitiesRouter = require("./routes/opportunities");
 const quotesRouter = require("./routes/quotes");
@@ -141,6 +143,8 @@ app.use("/api/ncr",         requireDepartment("qc", "welding"),                 
 app.use("/api/inspections", requireDepartment("qc"),                              inspectionsRouter);
 app.use("/api/wps",         requireDepartment("welding", "qc"),                   wpsRouter);
 app.use("/api/wpq",         requireDepartment("welding", "qc"),                   wpqRouter);
+app.use("/api/projects/:id/pwht", requireDepartment("welding", "qc"),             pwhtRouter);
+app.use("/api/consumables", requireDepartment("welding", "qc", "store"),          consumablesRouter);
 
 // ── S-10/S-11: GRN + dashboard aggregates ────────────────────
 app.use("/api/grn",       requireDepartment("store", "procurement"), grnRouter);

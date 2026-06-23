@@ -588,6 +588,30 @@ function buildSidebar(navItems, accent) {
 
 /* ── Production Module — Sidebar Context Switching ─────────── */
 let _globalNavCache = null;
+
+/* Brand-logo exit: clicking the NexaForge mark leaves whatever module
+   sidebar is active and restores the global nav. Outside a module it
+   just goes home. */
+function exitActiveModule() {
+  if (_globalNavCache) {
+    const exits = {
+      production: exitProductionModule,
+      quality:    exitQCModule,
+      welding:    exitWeldingModule,
+      inventory:  exitStoreModule,
+      finance:    exitFinanceModule,
+      marketing:  exitMarketingModule,
+      hr:         exitHRModule,
+    };
+    const exit = exits[AppState.currentPage];
+    if (exit) { exit(); return; }
+    // Unknown module state — restore the global sidebar generically
+    buildSidebar(_globalNavCache, AppState.accent || '#103B2E');
+    AppState.permissions = _globalNavCache;
+    _globalNavCache = null;
+  }
+  navigate(deptHome(AppState.department));
+}
 let _prodActiveSubPage = 'control-centre';
 
 const PROD_NAV_ICONS = {

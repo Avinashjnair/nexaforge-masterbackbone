@@ -261,10 +261,19 @@ const WeldData = {
 
   /* ── Weld consumable heat records ── */
   consumables: [
-    { lot:'FW-2231', material:'ER316L 2.4mm', brand:'Lincoln Electric', qty:'45kg', received:'2025-03-01', heatNo:'FW22310456', certified:true, cert:'MTC-FW2231', project:'P-2401' },
-    { lot:'FW-2248', material:'E316L-16 3.2mm', brand:'ESAB', qty:'15kg', received:'2025-03-15', heatNo:'FW22480021', certified:true, cert:'MTC-FW2248', project:'P-2401' },
-    { lot:'FW-2301', material:'ER308L 1.6mm', brand:'Lincoln Electric', qty:'20kg', received:'2025-01-10', heatNo:'FW23010088', certified:true, cert:'MTC-FW2301', project:'P-2403' },
+    { id:'cb-001', lot:'FW-2231', batch_no:'FW-2231', material:'ER316L 2.4mm', material_spec:'ER316L 2.4mm', brand:'Lincoln Electric', qty:'45kg', qty_received:45, qty_unit:'KG', received:'2025-03-01', received_date:'2025-03-01', heatNo:'FW22310456', heat_no:'FW22310456', certified:true, mtc_available:true, cert:'MTC-FW2231', project:'P-2401', storage_location:'Cold Store A' },
+    { id:'cb-002', lot:'FW-2248', batch_no:'FW-2248', material:'E316L-16 3.2mm', material_spec:'E316L-16 3.2mm', brand:'ESAB', qty:'15kg', qty_received:15, qty_unit:'KG', received:'2025-03-15', received_date:'2025-03-15', heatNo:'FW22480021', heat_no:'FW22480021', certified:true, mtc_available:true, cert:'MTC-FW2248', project:'P-2401', storage_location:'Cold Store A' },
+    { id:'cb-003', lot:'FW-2301', batch_no:'FW-2301', material:'ER308L 1.6mm', material_spec:'ER308L 1.6mm', brand:'Lincoln Electric', qty:'20kg', qty_received:20, qty_unit:'KG', received:'2025-01-10', received_date:'2025-01-10', heatNo:'FW23010088', heat_no:'FW23010088', certified:true, mtc_available:true, cert:'MTC-FW2301', project:'P-2403', storage_location:'Cold Store B' },
   ],
+
+  /* ── PWHT records — seed data; replaced by API loader ── */
+  pwht: {
+    'P-2401': [],
+    'P-2402': [
+      { id:'pwht-001', pwht_no:'PWHT-2402-001', joint_no:'WJ-101', furnace_id:'F-01', hold_temp_c:620, hold_duration_min:120, heat_rate_per_hr:150, cool_rate_per_hr:150, start_time:'2025-04-10T08:00:00', end_time:'2025-04-10T14:00:00', witnessed_by:'J. Williams (AI)', result:'pass', notes:'Temp ±8°C — within ASME UW-40 tolerance' },
+    ],
+    'P-2403': [],
+  },
 };
 
 /* ─────────────────────────────────────────────────────────────
@@ -310,6 +319,106 @@ async function renderWelding() {
     // Subscribe to live telemetry rooms for each machine
     if (typeof joinMachineRoom === 'function') {
       WeldData.machines.forEach(m => joinMachineRoom(m.id));
+    }
+  }
+
+  // Load WPQ passports + weld joints for current project
+  if (!(typeof AppState !== 'undefined' && AppState.isDemoMode)) {
+    const selectedPid = WeldData.selectedProject || (AppState.projects && AppState.projects[0]?.project_no);
+    const [wpqRes, jointsRes, pqrRes] = await Promise.allSettled([
+      WeldingAPI.wpqList({ limit: 200 }),
+      selectedPid ? WeldingAPI.joints(selectedPid) : Promise.reject('no project'),
+      WeldingAPI.pqrList(),
+    ]);
+
+    if (wpqRes.status === 'fulfilled') {
+      const raw = wpqRes.value.records || wpqRes.value || [];
+      if (raw.length) {
+        WeldData.wpq = raw.map(r => ({
+          id: r.id,
+          welder: r.welder_name || r.employee_name || r.employee_id || '',
+          welderId: r.employee_no || r.employee_id || '',
+          qualifications: (r.qualifications || []).map(q => ({
+            process: q.process || '', position: q.position || '',
+            material: q.base_material || '', thickness: q.thickness_range || '',
+            issued: (q.qualified_date || '').slice(0, 10),
+            expiry: (q.expiry_date || '').slice(0, 10),
+            status: q.status || 'valid',
+            wpsRef: q.wps_no || '',
+          })),
+        }));
+      }
+    }
+
+    if (jointsRes.status === 'fulfilled') {
+      const raw = jointsRes.value.joints || jointsRes.value || [];
+      if (raw.length && selectedPid) {
+        WeldData.joints[selectedPid] = raw.map(j => ({
+          id: j.joint_no || j.id,
+          _dbId: j.id,
+          weld: j.joint_no || j.id,
+          dwg: j.drawing_ref || '',
+          seam: j.seam_type || '',
+          process: j.wps_process || j.process || '',
+          wps: j.wps_no || '',
+          welder: j.welder_name || j.welder_id || '',
+          size: j.size || '',
+          material: j.material || '',
+          thick: j.thickness_mm || 0,
+          status: j.status || 'pending',
+          nde: j.nde_method || '',
+          ndeResult: j.nde_result || 'Pending',
+          repair: j.repair_count || 0,
+        }));
+      }
+    }
+
+    if (pqrRes.status === 'fulfilled') {
+      const raw = pqrRes.value.pqrs || pqrRes.value || [];
+      if (raw.length) {
+        WeldData.pqr = raw.map(r => ({
+          ref: r.pqr_no || r.id,
+          process: r.process || '',
+          material: r.base_material || '',
+          thickness: r.thickness_range || '',
+          positions: r.positions || '',
+          tested: (r.test_date || '').slice(0, 10),
+          status: r.status || 'approved',
+          lab: r.test_lab || '',
+        }));
+      }
+    }
+  }
+
+  // Load PWHT + consumables for selected project
+  if (selectedPid && !(typeof AppState !== 'undefined' && AppState.isDemoMode)) {
+    const [pwhtRes, consumRes] = await Promise.allSettled([
+      WeldingAPI.pwhtList(selectedPid),
+      WeldingAPI.consumableBatches({ projectId: selectedPid }),
+    ]);
+    if (pwhtRes.status === 'fulfilled') {
+      const raw = pwhtRes.value || [];
+      if (raw.length) WeldData.pwht[selectedPid] = raw;
+    }
+    if (consumRes.status === 'fulfilled') {
+      const raw = consumRes.value || [];
+      if (raw.length) {
+        const existing = WeldData.consumables.filter(c => c.project !== selectedPid);
+        WeldData.consumables = [
+          ...existing,
+          ...raw.map(r => ({
+            id: r.id, lot: r.batch_no, batch_no: r.batch_no,
+            material: r.material_spec, material_spec: r.material_spec,
+            brand: r.brand || '', qty: `${r.qty_received}${r.qty_unit}`,
+            qty_received: r.qty_received, qty_unit: r.qty_unit,
+            received: r.received_date, received_date: r.received_date,
+            heatNo: r.heat_no, heat_no: r.heat_no,
+            certified: r.mtc_available, mtc_available: r.mtc_available,
+            storage_location: r.storage_location || '',
+            project: selectedPid, joint_count: r.joint_count || 0,
+          })),
+        ];
+      }
     }
   }
 
@@ -359,6 +468,9 @@ async function renderWelding() {
         ${faultM ? `<span class="wld-tab-pill alert">${faultM} fault</span>` : `<span class="wld-tab-pill" style="background:var(--green-bg);color:var(--green)">${activeM} active</span>`}
       </button>
       <button class="wld-tab ${WeldData.activeTab==='nde'?'active':''}"        data-wtab="nde"        onclick="switchWldTab('nde')">NDE / NDT</button>
+      <button class="wld-tab ${WeldData.activeTab==='continuity'?'active':''}" data-wtab="continuity" onclick="switchWldTab('continuity')">Continuity</button>
+      <button class="wld-tab ${WeldData.activeTab==='pwht'?'active':''}"       data-wtab="pwht"       onclick="switchWldTab('pwht')">PWHT</button>
+      <button class="wld-tab ${WeldData.activeTab==='consumables'?'active':''}" data-wtab="consumables" onclick="switchWldTab('consumables')">Consumables</button>
     </div>`}
 
     <div id="wldTabContent"></div>
@@ -405,7 +517,10 @@ function switchWldTab(tab) {
     wpq:      renderWldWPQ,
     joints:   renderWldJoints,
     iot:      renderWldIoT,
-    nde:      renderWldNDE,
+    nde:         renderWldNDE,
+    continuity:  renderWldContinuity,
+    pwht:        renderWldPWHT,
+    consumables: renderWldConsumables,
     analytics: () => mountAnaCockpit('welding', { container: document.getElementById('wldTabContent') }),
   };
   if (map[tab]) map[tab]();

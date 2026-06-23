@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NexaForge ERP — 3D Parameter Map</title>
+  <script src="https://unpkg.com/three@0.155.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/3d-force-graph@1.73.3/dist/3d-force-graph.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #05040F;
+      color: #E2E0F0;
+      font-family: system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #graph { position: fixed; inset: 0; z-index: 1; }
+
+    /* ── Nebula background layers ── */
+    #nebula {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 70% 50% at 20% 30%, rgba(124,58,237,0.13) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 60% at 80% 70%, rgba(16,185,129,0.09) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 40% at 60% 15%, rgba(251,146,60,0.07) 0%, transparent 50%),
+        radial-gradient(ellipse 80% 80% at 50% 50%, rgba(30,20,60,0.95) 0%, #05040F 100%);
+    }
+
+    /* ── Top bar ── */
+    #topbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 13px 22px;
+      background: linear-gradient(180deg, rgba(5,4,15,0.97) 50%, transparent 100%);
+      pointer-events: none;
+    }
+    .tb-logo {
+      font-size: 18px; font-weight: 800; color: #fff;
+      letter-spacing: -0.4px;
+      text-shadow: 0 0 20px rgba(124,110,250,0.6);
+    }
+    .tb-logo span {
+      background: linear-gradient(135deg, #7C6EFA, #A78BFA, #38BDF8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .tb-sub { font-size: 11px; color: rgba(226,224,240,0.38); letter-spacing: .03em; }
+    .tb-spacer { flex: 1; }
+    .tb-pill {
+      background: rgba(124,110,250,0.1);
+      border: 1px solid rgba(124,110,250,0.25);
+      border-radius: 999px;
+      padding: 4px 13px;
+      font-size: 11px;
+      color: rgba(226,224,240,0.6);
+      pointer-events: auto;
+      backdrop-filter: blur(8px);
+    }
+    .tb-pill b { color: #C4B5FD; font-weight: 700; }
+
+    /* ── Legend ── */
+    #legend {
+      position: fixed;
+      left: 14px; top: 54px;
+      z-index: 50;
+      background: rgba(8,6,20,0.82);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 13px 14px;
+      width: 190px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    #legend h3 {
+      font-size: 9.5px; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: rgba(226,224,240,0.32);
+      margin-bottom: 10px;
+    }
+    .lg-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 6px; border-radius: 8px;
+      cursor: pointer; transition: background .15s, transform .1s; margin-bottom: 1px;
+      user-select: none;
+    }
+    .lg-item:hover { background: rgba(255,255,255,0.06); transform: translateX(2px); }
+    .lg-item.off { opacity: .22; }
+    .lg-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 0 6px var(--glow, #fff);
+    }
+    .lg-name { font-size: 11px; color: rgba(226,224,240,0.78); flex: 1; }
+    .lg-n {
+      font-size: 10px; color: rgba(226,224,240,0.28);
+      background: rgba(255,255,255,0.05); border-radius: 4px;
+      padding: 1px 5px;
+    }
+
+    /* ── Info panel ── */
+    #info {
+      position: fixed;
+      right: 14px; top: 54px;
+      z-index: 50;
+      background: rgba(8,6,20,0.88);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 16px;
+      padding: 18px 17px 15px;
+      width: 262px;
+      transform: translateX(290px);
+      opacity: 0;
+      transition: transform .4s cubic-bezier(.34,1.4,.64,1), opacity .25s;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 12px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07);
+    }
+    #info.open { transform: translateX(0); opacity: 1; }
+    /* colored top accent bar */
+    #info-accent {
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      border-radius: 16px 16px 0 0;
+      background: var(--accent, #7C6EFA);
+      transition: background .3s;
+    }
+    #info-close {
+      position: absolute; top: 11px; right: 11px;
+      width: 22px; height: 22px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.06); cursor: pointer;
+      font-size: 12px; color: rgba(226,224,240,.45);
+      transition: background .15s, color .15s;
+    }
+    #info-close:hover { background: rgba(255,255,255,.14); color: #fff; }
+    #i-mod {
+      font-size: 9.5px; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; margin-bottom: 4px; margin-top: 4px;
+    }
+    #i-name { font-size: 17px; font-weight: 800; color: #fff; margin-bottom: 5px; line-height: 1.2; }
+    #i-desc { font-size: 11px; color: rgba(226,224,240,.5); line-height: 1.57; margin-bottom: 14px; }
+    .i-sec {
+      font-size: 9.5px; font-weight: 700; letter-spacing: .09em;
+      text-transform: uppercase; color: rgba(226,224,240,.28); margin-bottom: 8px;
+    }
+    #i-conns { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 13px; }
+    .i-chip {
+      padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 600;
+      border: 1px solid rgba(255,255,255,.1); cursor: pointer;
+      transition: background .12s, transform .1s;
+      letter-spacing: .01em;
+    }
+    .i-chip:hover { background: rgba(255,255,255,.08); transform: scale(1.04); }
+    #i-fields { display: flex; flex-direction: column; gap: 6px; }
+    .i-row {
+      display: flex; justify-content: space-between; font-size: 11px;
+      padding: 4px 8px; border-radius: 6px;
+      background: rgba(255,255,255,0.03);
+    }
+    .i-key { color: rgba(226,224,240,.38); }
+    .i-val { color: rgba(226,224,240,.85); font-weight: 600; text-align: right; max-width: 135px; }
+
+    /* ── Bottom controls ── */
+    #ctrls {
+      position: fixed;
+      bottom: 18px; left: 50%; transform: translateX(-50%);
+      z-index: 50;
+      display: flex; gap: 7px; align-items: center;
+    }
+    .btn {
+      background: rgba(8,6,20,0.82);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 10px;
+      padding: 8px 16px;
+      font-size: 12px; color: rgba(226,224,240,.6);
+      cursor: pointer; transition: all .18s;
+      font-family: inherit;
+      backdrop-filter: blur(10px);
+      letter-spacing: .01em;
+    }
+    .btn:hover {
+      border-color: rgba(167,139,250,.45); color: #C4B5FD;
+      background: rgba(124,110,250,.12);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(124,110,250,.2);
+    }
+    .btn.on {
+      background: rgba(124,110,250,.2);
+      border-color: rgba(167,139,250,.5);
+      color: #C4B5FD;
+      box-shadow: 0 0 12px rgba(124,110,250,.25), inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    /* ── Search ── */
+    #srch-wrap {
+      position: fixed; bottom: 18px; right: 14px;
+      z-index: 50;
+      display: flex; align-items: center;
+      background: rgba(8,6,20,0.82);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 10px; overflow: hidden;
+      backdrop-filter: blur(10px);
+      transition: border-color .2s, box-shadow .2s;
+    }
+    #srch-wrap:focus-within {
+      border-color: rgba(167,139,250,.45);
+      box-shadow: 0 0 0 3px rgba(124,110,250,.1);
+    }
+    #srch-wrap svg { margin: 0 10px; opacity: .38; flex-shrink: 0; }
+    #srch {
+      background: none; border: none; outline: none;
+      color: #E2E0F0; font-size: 12px; font-family: inherit;
+      padding: 8px 14px 8px 0; width: 158px;
+    }
+    #srch::placeholder { color: rgba(226,224,240,.28); }
+
+    /* ── Tooltip ── */
+    #tip {
+      position: fixed; z-index: 200; pointer-events: none;
+      background: rgba(8,6,20,.94); border: 1px solid rgba(255,255,255,.1);
+      border-radius: 10px; padding: 7px 12px;
+      font-size: 12px; opacity: 0; transition: opacity .12s;
+      box-shadow: 0 4px 20px rgba(0,0,0,.5);
+    }
+    #tip.show { opacity: 1; }
+    #tip b { color: #fff; display: block; font-weight: 700; margin-bottom: 1px; }
+    #tip small { font-size: 10.5px; }
+
+    /* ── Progress panel ── */
+    #progress-panel {
+      position: fixed;
+      left: 14px; bottom: 62px;
+      z-index: 50;
+      background: rgba(8,6,20,0.92);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 14px;
+      padding: 14px 16px;
+      width: 220px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+      display: none;
+    }
+    #progress-panel h3 {
+      font-size: 9.5px; font-weight: 700; letter-spacing:.1em;
+      text-transform: uppercase; color: rgba(226,224,240,0.32);
+      margin-bottom: 10px;
+    }
+    .pr-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 11px;
+    }
+    .pr-row:last-child { border-bottom: none; }
+    .pr-label { flex: 1; color: rgba(226,224,240,0.7); }
+    .pr-bar-wrap { width: 60px; height: 5px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; }
+    .pr-bar { height: 100%; border-radius: 99px; transition: width .6s ease; }
+    .pr-pct { font-size: 10px; font-weight: 700; min-width: 30px; text-align: right; }
+  </style>
+</head>
+<body>
+
+<div id="nebula"></div>
+<div id="graph"></div>
+
+<div id="topbar">
+  <div class="tb-logo">Nexa<span>Forge</span></div>
+  <div class="tb-sub">3D Parameter Connectivity Map</div>
+  <div class="tb-spacer"></div>
+  <div class="tb-pill"><b id="sn">0</b> Nodes</div>
+  <div class="tb-pill"><b id="se">0</b> Edges</div>
+  <div class="tb-pill"><b id="sm">0</b> Modules</div>
+  <div class="tb-pill" style="cursor:pointer;pointer-events:auto" onclick="toggleProgress()">📋 <b>Progress</b></div>
+</div>
+
+<div id="legend"><h3>Modules</h3><div id="lg-list"></div></div>
+
+<div id="info">
+  <div id="info-accent"></div>
+  <div id="info-close">✕</div>
+  <div id="i-mod"></div>
+  <div id="i-name"></div>
+  <div id="i-desc"></div>
+  <div class="i-sec">Connected To</div>
+  <div id="i-conns"></div>
+  <div class="i-sec">Key Fields</div>
+  <div id="i-fields"></div>
+</div>
+
+<div id="ctrls">
+  <button class="btn" id="b-reset">⟳ Reset</button>
+  <button class="btn on" id="b-flow">⚡ Flow</button>
+  <button class="btn on" id="b-labels">⬡ Labels</button>
+</div>
+
+<div id="srch-wrap">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </svg>
+  <input id="srch" placeholder="Search nodes…" autocomplete="off"/>
+</div>
+
+<div id="tip"><b id="t-name"></b><small id="t-mod"></small></div>
+
+<div id="progress-panel">
+  <h3>Implementation Progress</h3>
+  <div class="pr-row"><span class="pr-label">P0 — Foundation</span><div class="pr-bar-wrap"><div class="pr-bar" style="width:100%;background:#2EE5A0"></div></div><span class="pr-pct" style="color:#2EE5A0">100%</span></div>
+  <div class="pr-row"><span class="pr-label">M6 — Finance</span><div class="pr-bar-wrap"><div class="pr-bar" style="width:90%;background:#00E5FF"></div></div><span class="pr-pct" style="color:#00E5FF">90%</span></div>
+  <div class="pr-row"><span class="pr-label">M7 — Documents</span><div class="pr-bar-wrap"><div class="pr-bar" style="width:0%;background:#9B8FFF"></div></div><span class="pr-pct" style="color:rgba(226,224,240,0.28)">0%</span></div>
+  <div class="pr-row"><span class="pr-label">M8 — HSE</span><div class="pr-bar-wrap"><div class="pr-bar" style="width:0%;background:#FF6B6B"></div></div><span class="pr-pct" style="color:rgba(226,224,240,0.28)">0%</span></div>
+  <div class="pr-row"><span class="pr-label">M9 — Maintenance</span><div class="pr-bar-wrap"><div class="pr-bar" style="width:0%;background:#FF8C42"></div></div><span class="pr-pct" style="color:rgba(226,224,240,0.28)">0%</span></div>
+  <div class="pr-row"><span class="pr-label">M10 — Analytics</span><div class="pr-bar-wrap"><div class="pr-bar" style="width:0%;background:#9B8FFF"></div></div><span class="pr-pct" style="color:rgba(226,224,240,0.28)">0%</span></div>
+  <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;font-size:10px">
+    <span style="color:rgba(226,224,240,0.35)">Overall (M6–M10)</span>
+    <span style="color:#C4B5FD;font-weight:700">18%</span>
+  </div>
+</div>
+
+<script>
+// ── Modules ──────────────────────────────────────────────────────
+const MOD = {
+  core:        { label:'Core',           color:'#E0DEFF' },
+  production:  { label:'Production',     color:'#FFD060' },
+  qc:          { label:'Quality',        color:'#FF6B6B' },
+  procurement: { label:'Procurement',    color:'#60AFFF' },
+  inventory:   { label:'Inventory',      color:'#2EE5A0' },
+  marketing:   { label:'Marketing/CRM',  color:'#D580FF' },
+  finance:     { label:'Finance',        color:'#00E5FF' },
+  hr:          { label:'HR & Workforce', color:'#FF70C0' },
+  welding:     { label:'Welding / WPS',  color:'#FF8C42' },
+  analytics:   { label:'Analytics/KPI',  color:'#9B8FFF' },
+};
+
+// ── Nodes ────────────────────────────────────────────────────────
+const NODES = [
+  // CORE
+  { id:'project',      label:'Project',            module:'core',        sz:18,
+    desc:'Top-level manufacturing job record. Every module — BOM, schedule, QC, costing, invoicing — links back to a Project.',
+    fields:{'ID pattern':'P-YYMM','Status':'active / qc-hold / dispatch','Phases':'1 – 7'} },
+  { id:'heat_no',      label:'Heat Number',         module:'core',        sz:14,
+    desc:'Material traceability key. Traces a physical steel/alloy batch from the supplier MTC all the way through welding and QC.',
+    fields:{'Pattern':'HN-XXXXX','Source':'GRN / MTC','Standard':'ASME / API'} },
+
+  // PRODUCTION
+  { id:'work_order',   label:'Work Order',          module:'production',  sz:13,
+    desc:'Live shop-floor job dispatched to a work centre. Tracks operator, status, and time-in-station.',
+    fields:{'Status':'active / queued / done','Trigger':'Routing Step approval'} },
+  { id:'bom',          label:'BOM',                 module:'production',  sz:13,
+    desc:'Bill of Materials — hierarchical tree of every part, sub-assembly, and raw material needed. Drives MRP demand.',
+    fields:{'Types':'assembly / material / part','Output':'MRP demand list'} },
+  { id:'routing',      label:'Routing Step',        module:'production',  sz:11,
+    desc:'Ordered manufacturing sequence (cut → roll → weld → NDE → hydro). Each step has QC hold points and WPS assignments.',
+    fields:{'Hold types':'W (witness) / H (hard stop)','Links':'WPS, QC gate, WC'} },
+  { id:'work_centre',  label:'Work Centre',         module:'production',  sz:11,
+    desc:'Physical equipment bay. Tracks live utilisation%, IIoT health, and assigned operator.',
+    fields:{'Status':'busy / idle / down','Metrics':'util%, health%'} },
+  { id:'schedule',     label:'Master Schedule',     module:'production',  sz:11,
+    desc:'Gantt-style project timeline. Tasks map to routing steps with durations, dependencies, and hold flags.',
+    fields:{'View':'Gantt / Kanban','Task status':'done / active / blocked'} },
+  { id:'mrf',          label:'Material Requisition',module:'production',  sz:9,
+    desc:'Internal request to pull materials from the store for a specific project activity.',
+    fields:{'Pattern':'MRF-XXXXXX','Status':'pending / approved'} },
+  { id:'maintenance',  label:'Maintenance Log',     module:'production',  sz:9,
+    desc:'Preventive and corrective maintenance records. Failure codes, technician actions, measurements.',
+    fields:{'Types':'PM / CM','Links':'Equipment, Work Centre'} },
+  { id:'iiot',         label:'IIoT Telemetry',      module:'production',  sz:8,
+    desc:'Real-time sensor snapshots — power, temperature, load. Feeds OEE and WPS heat-input compliance.',
+    fields:{'Params':'power, temp, load, status','Frequency':'near real-time'} },
+  { id:'shop_log',     label:'Shop Floor Log',      module:'production',  sz:8,
+    desc:'Immutable time-stamped execution events — milestone completions, quality gates, anomalies.',
+    fields:{'Fields':'time, project, tag, text','Audit':'append-only'} },
+
+  // QUALITY
+  { id:'itp',          label:'ITP',                 module:'qc',          sz:13,
+    desc:'Inspection & Test Plan — master checklist of all hold points per project. References API 650, ASME VIII.',
+    fields:{'Standards':'API 650, ASME VIII','Witness':'Internal / Customer / TPI'} },
+  { id:'rfi',          label:'Inspection Request',  module:'qc',          sz:11,
+    desc:'Ad-hoc or planned inspection trigger (RFI). Assigns inspector, schedules date, records result.',
+    fields:{'Pattern':'RFI-XXXXXX','Priority':'critical / high / normal','Result':'pass / fail'} },
+  { id:'ncr',          label:'NCR',                 module:'qc',          sz:12,
+    desc:'Non-Conformance Report — 8D problem-solving with fishbone root cause, containment, CAPA, and closure.',
+    fields:{'Pattern':'NCR-XXXXXX','D-Steps':'D1 – D8','Analysis':'6M fishbone'} },
+  { id:'calibration',  label:'Calibration Registry',module:'qc',          sz:9,
+    desc:'Instrument calibration status, certificates, and due dates. Overdue items block inspection sign-offs.',
+    fields:{'Fields':'certNo, lastCal, due, health%','Standard':'ISO 17025'} },
+  { id:'mdr',          label:'QC Dossier / MDR',    module:'qc',          sz:9,
+    desc:'Material & Document Record — compiled package of all certs, MTCs, reports, and drawings for handover.',
+    fields:{'Contents':'MTCs, IRs, NDT, hydro cert','Trigger':'project dispatch'} },
+  { id:'ndt',          label:'NDT Report',          module:'qc',          sz:10,
+    desc:'Non-Destructive Testing: RT, UT, VT, PMI. Results tied to heat numbers and weld joint IDs.',
+    fields:{'Methods':'RT, UT, VT, PMI, DFT','Cert':'ASNT Level II / III'} },
+  { id:'complaint',    label:'Customer Complaint',  module:'qc',          sz:9,
+    desc:'External quality event raised by a customer. Follows an 8-step CAPA workflow.',
+    fields:{'Severity':'critical / major / minor','CAPA':'C1 – C8 steps'} },
+
+  // PROCUREMENT
+  { id:'pr',           label:'Purchase Request',    module:'procurement', sz:10,
+    desc:'Internal demand signal — raised by production via MRF or MRP. Needs approval before becoming a PO.',
+    fields:{'Pattern':'PR-XXXXXX','Status':'pending / approved / po-issued'} },
+  { id:'po',           label:'Purchase Order',      module:'procurement', sz:12,
+    desc:'Formal vendor commitment. Tracks delivery date, payment terms; converts to GRN on goods arrival.',
+    fields:{'Pattern':'PO-XXXXXX','Status':'confirmed / in-transit / overdue'} },
+  { id:'vendor',       label:'Vendor',              module:'procurement', sz:11,
+    desc:'Approved Vendor List entry. Scored on on-time delivery%, NCR rate, ISO certs, and MTC capability.',
+    fields:{'Score':'0 – 100 rating','Certs':'ISO, ADNOC approval','MTC':'mill cert flag'} },
+  { id:'grn',          label:'GRN',                 module:'procurement', sz:10,
+    desc:'Goods Received Note — records physical arrival against a PO. Captures heat number; triggers QC incoming hold.',
+    fields:{'Pattern':'GRN-XXXXXX','Triggers':'stock receipt + QC quarantine'} },
+
+  // INVENTORY
+  { id:'stock_item',   label:'Stock Item',          module:'inventory',   sz:12,
+    desc:'Inventory line with full traceability: heat number, MTC ref, GRN source, project reservation, QC status.',
+    fields:{'Status':'available / pending-qc / quarantine','Trace':'heatNo + mtcRef + grnRef'} },
+  { id:'mat_move',     label:'Material Movement',   module:'inventory',   sz:9,
+    desc:'Audit log of every stock transaction: receipt, issue to production, return, or adjustment.',
+    fields:{'Types':'receipt / issue / return / adj','Audit':'executedBy, heatNo'} },
+  { id:'kitting',      label:'Kitting & Staging',   module:'inventory',   sz:8,
+    desc:'Pre-assembly kit — picks and stages all BOM-required materials before a work order hits the floor.',
+    fields:{'Input':'BOM + Work Order','Output':'staged material set'} },
+  { id:'quarantine',   label:'Quarantine Register', module:'inventory',   sz:8,
+    desc:'Holds materials pending QC decision after incoming inspection. Locked from production use until cleared.',
+    fields:{'Status':'pending / cleared / rejected'} },
+
+  // MARKETING
+  { id:'opportunity',  label:'Opportunity',         module:'marketing',   sz:12,
+    desc:'Sales pipeline record tracking a contract from prospect to won/lost. Converts to Project on award.',
+    fields:{'Stages':'7 (prospect → won)','Fields':'value, prob%, closeDate'} },
+  { id:'client',       label:'Client',              module:'marketing',   sz:11,
+    desc:'Customer master. Aggregates opportunities, active projects, total revenue. Source for AR invoicing.',
+    fields:{'Fields':'sector, region, rating','Links':'Opportunity, Invoice, Complaint'} },
+  { id:'quote',        label:'Quote / Tender',      module:'marketing',   sz:9,
+    desc:'Pricing offer or tender response. Seeds the job cost baseline when the opportunity is won.',
+    fields:{'Links':'Opportunity, Job Costing','Tracks':'ITT deadlines, RFQs'} },
+
+  // FINANCE
+  { id:'job_cost',     label:'Job Costing',         module:'finance',     sz:13,
+    desc:'Per-project P&L. Budget vs actual across materials, labour, sub-contractors, and overheads.',
+    fields:{'Categories':'Material, Labour, Sub-con, OH','KPIs':'margin%, cost variance'} },
+  { id:'milestone',    label:'Milestone Billing',   module:'finance',     sz:10,
+    desc:'Payment triggers tied to project phase gates. Converts to an AR invoice on approval.',
+    fields:{'Trigger':'Project phase completion','Amount':'% of contract value'} },
+  { id:'invoice_ar',   label:'Invoice (AR)',         module:'finance',     sz:11,
+    desc:'Customer invoice issued against a milestone. Tracks DSO and overdue status per client.',
+    fields:{'Pattern':'INV-XXXXXX','Status':'paid / overdue / draft','Metric':'DSO days'} },
+  { id:'payable_ap',   label:'Payable (AP)',         module:'finance',     sz:10,
+    desc:'Vendor payable raised from a PO. Tracks due dates and feeds cash flow forecasting.',
+    fields:{'Status':'due / paid / overdue','Terms':'net 30 / net 60'} },
+  { id:'cash_flow',    label:'Cash Flow',            module:'finance',     sz:9,
+    desc:'Monthly inflow (AR) vs outflow (AP + overheads) — forecast and actuals.',
+    fields:{'Tracks':'inflow, outflow, net','Links':'Invoice AR, Payable AP'} },
+  { id:'budget_mgmt',  label:'Budget Management',    module:'finance',     sz:11,
+    desc:'Per-project cost budget with approval workflow, 80% early-warning alerts, revision history with CO linkage, and what-if analysis sliders.',
+    fields:{'Status':'draft / pending / approved','Alerts':'80% threshold per category','Revisions':'B0, B1, B2…'} },
+  { id:'bank_guarantee',label:'Bank Guarantee',      module:'finance',     sz:9,
+    desc:'Performance and advance-payment guarantees issued to clients. Tracks bank, expiry, and release status.',
+    fields:{'Types':'Performance / Advance Payment','Status':'active / expiring / released','Expiry':'tracked with alerts'} },
+  { id:'overhead_abs', label:'Overhead Absorption',  module:'finance',     sz:8,
+    desc:'Overhead pool (facility, depreciation, salaries, insurance) allocated to projects at 28% of direct labour. Tracks absorption rate vs budget.',
+    fields:{'Rate':'28% of direct labour','Absorption rate':'YTD %','Categories':'7 overhead pools'} },
+
+  // HR
+  { id:'employee',     label:'Employee',            module:'hr',          sz:13,
+    desc:'Personnel master with skills, certifications, project assignments, and utilisation metrics.',
+    fields:{'Skills':'GTAW, SMAW, NDT, CAD…','Metrics':'util%, direct/indirect hrs'} },
+  { id:'cert',         label:'Certification',       module:'hr',          sz:10,
+    desc:'Employee qualification — welder codes, QC authority, safety cards. Tracks expiry and renewal.',
+    fields:{'Types':'WPQ, ASME, ISO, CSWIP','Status':'valid / expiring / expired'} },
+  { id:'shift',        label:'Shift Schedule',      module:'hr',          sz:8,
+    desc:'Weekly workforce calendar with Morning / Afternoon / Night / Leave codes per employee.',
+    fields:{'Codes':'M, A, N, OFF, AL, SL'} },
+  { id:'training',     label:'Training Record',     module:'hr',          sz:8,
+    desc:'Skill development log — course, provider, cost, attendees, pass/fail. Triggers cert renewal.',
+    fields:{'Fields':'title, provider, cost, result'} },
+
+  // WELDING
+  { id:'wps',          label:'WPS',                 module:'welding',     sz:13,
+    desc:'Welding Procedure Specification — all approved process parameters per ASME IX (material, filler, V, A, heat input).',
+    fields:{'Standard':'ASME IX','Process':'GTAW / SMAW','Params':'V, A, travel speed'} },
+  { id:'pqr',          label:'PQR',                 module:'welding',     sz:10,
+    desc:'Procedure Qualification Record — mechanical test evidence (tensile, bend, impact, hardness) that qualifies a WPS.',
+    fields:{'Tests':'tensile, bend, impact, hardness','Lab':'third-party'} },
+  { id:'wpq',          label:'Welder Passport (WPQ)',module:'welding',    sz:10,
+    desc:'Individual welder qualification — which WPS codes they are certified to execute.',
+    fields:{'Standard':'ASME IX / ISO 9606','Expiry':'tracked for renewal'} },
+  { id:'weld_map',     label:'Weld Map',            module:'welding',     sz:9,
+    desc:'Joint register per project — every joint ID, WPS used, welder assigned, and NDT inspection result.',
+    fields:{'Fields':'joint ID, WPS, welder, NDT status'} },
+
+  // ANALYTICS
+  { id:'oee',          label:'OEE / Throughput',    module:'analytics',   sz:9,
+    desc:'Overall Equipment Effectiveness = Availability × Performance × Quality, from IIoT + shop logs.',
+    fields:{'Formula':'Avail × Perf × Quality','Source':'IIoT, Work Orders, QC'} },
+  { id:'q_kpi',        label:'Quality KPIs',        module:'analytics',   sz:9,
+    desc:'FPY, defect rate, NCR ageing, COPQ, and supplier quality scorecard.',
+    fields:{'Metrics':'FPY, defect rate, NCR age, COPQ'} },
+  { id:'f_kpi',        label:'Finance KPIs',        module:'analytics',   sz:9,
+    desc:'Project margin%, cost variance, AR/AP ageing summary, and cash flow — for the executive dashboard.',
+    fields:{'Metrics':'margin%, DSO, cost variance'} },
+  { id:'hr_kpi',       label:'HR KPIs',             module:'analytics',   sz:8,
+    desc:'Workforce utilisation, absenteeism, expiring certifications pipeline, and headcount by department.',
+    fields:{'Metrics':'util%, absenteeism, cert expiry'} },
+];
+
+const LINKS = [
+  // Core
+  {s:'opportunity', t:'project',     lbl:'converts to'},
+  {s:'project',     t:'bom',         lbl:'has'},
+  {s:'project',     t:'schedule',    lbl:'drives'},
+  {s:'project',     t:'job_cost',    lbl:'costed by'},
+  {s:'project',     t:'itp',         lbl:'inspected via'},
+  {s:'project',     t:'mdr',         lbl:'documented in'},
+  {s:'project',     t:'weld_map',    lbl:'has joints in'},
+  {s:'project',     t:'ncr',         lbl:'can raise'},
+  {s:'project',     t:'complaint',   lbl:'triggers'},
+  {s:'heat_no',     t:'stock_item',  lbl:'traces'},
+  {s:'heat_no',     t:'grn',         lbl:'received in'},
+  {s:'heat_no',     t:'ndt',         lbl:'tested in'},
+  {s:'heat_no',     t:'weld_map',    lbl:'consumed in'},
+  {s:'heat_no',     t:'mdr',         lbl:'filed in'},
+  // Production
+  {s:'bom',         t:'routing',     lbl:'drives sequence'},
+  {s:'bom',         t:'mrf',         lbl:'generates'},
+  {s:'bom',         t:'kitting',     lbl:'staged as'},
+  {s:'routing',     t:'work_order',  lbl:'spawns'},
+  {s:'routing',     t:'wps',         lbl:'references'},
+  {s:'routing',     t:'itp',         lbl:'hold point in'},
+  {s:'work_order',  t:'work_centre', lbl:'assigned to'},
+  {s:'work_order',  t:'employee',    lbl:'operated by'},
+  {s:'work_order',  t:'shop_log',    lbl:'logs to'},
+  {s:'work_centre', t:'iiot',        lbl:'streams'},
+  {s:'work_centre', t:'maintenance', lbl:'tracked in'},
+  {s:'mrf',         t:'pr',          lbl:'triggers'},
+  {s:'schedule',    t:'routing',     lbl:'mirrors'},
+  {s:'iiot',        t:'oee',         lbl:'feeds'},
+  {s:'iiot',        t:'wps',         lbl:'validates heat input'},
+  // QC
+  {s:'itp',         t:'rfi',         lbl:'generates'},
+  {s:'rfi',         t:'ncr',         lbl:'raises on fail'},
+  {s:'rfi',         t:'ndt',         lbl:'produces'},
+  {s:'calibration', t:'rfi',         lbl:'required for'},
+  {s:'ncr',         t:'q_kpi',       lbl:'measured in'},
+  {s:'ncr',         t:'job_cost',    lbl:'COPQ charged'},
+  {s:'complaint',   t:'ncr',         lbl:'linked to'},
+  {s:'ndt',         t:'mdr',         lbl:'filed in'},
+  {s:'q_kpi',       t:'vendor',      lbl:'scores'},
+  // Procurement
+  {s:'pr',          t:'po',          lbl:'converts to'},
+  {s:'po',          t:'vendor',      lbl:'issued to'},
+  {s:'po',          t:'grn',         lbl:'received as'},
+  {s:'po',          t:'payable_ap',  lbl:'creates'},
+  // Inventory
+  {s:'grn',         t:'stock_item',  lbl:'creates'},
+  {s:'grn',         t:'quarantine',  lbl:'held in'},
+  {s:'stock_item',  t:'mat_move',    lbl:'tracked in'},
+  {s:'quarantine',  t:'stock_item',  lbl:'releases to'},
+  {s:'kitting',     t:'work_order',  lbl:'feeds'},
+  // Finance
+  {s:'job_cost',    t:'milestone',   lbl:'triggers billing'},
+  {s:'milestone',   t:'invoice_ar',  lbl:'generates'},
+  {s:'invoice_ar',  t:'client',      lbl:'billed to'},
+  {s:'invoice_ar',  t:'cash_flow',   lbl:'inflow to'},
+  {s:'payable_ap',  t:'cash_flow',   lbl:'outflow to'},
+  {s:'cash_flow',      t:'f_kpi',         lbl:'feeds'},
+  {s:'job_cost',       t:'f_kpi',         lbl:'feeds'},
+  {s:'budget_mgmt',    t:'project',       lbl:'per-project for'},
+  {s:'budget_mgmt',    t:'job_cost',      lbl:'baseline for'},
+  {s:'budget_mgmt',    t:'overhead_abs',  lbl:'allocates to'},
+  {s:'overhead_abs',   t:'job_cost',      lbl:'absorbed into'},
+  {s:'invoice_ar',     t:'bank_guarantee',lbl:'secured by'},
+  {s:'bank_guarantee', t:'client',        lbl:'issued to'},
+  {s:'budget_mgmt',    t:'f_kpi',         lbl:'variance in'},
+  // Marketing
+  {s:'client',      t:'opportunity', lbl:'has'},
+  {s:'client',      t:'complaint',   lbl:'raises'},
+  {s:'quote',       t:'opportunity', lbl:'attached to'},
+  {s:'quote',       t:'job_cost',    lbl:'seeds baseline'},
+  // HR
+  {s:'employee',    t:'cert',        lbl:'holds'},
+  {s:'employee',    t:'shift',       lbl:'scheduled in'},
+  {s:'employee',    t:'training',    lbl:'attends'},
+  {s:'training',    t:'cert',        lbl:'renews'},
+  {s:'cert',        t:'wpq',         lbl:'includes'},
+  {s:'employee',    t:'hr_kpi',      lbl:'measured in'},
+  // Welding
+  {s:'wps',         t:'pqr',         lbl:'qualified by'},
+  {s:'wps',         t:'wpq',         lbl:'approved for'},
+  {s:'wpq',         t:'employee',    lbl:'held by'},
+  {s:'weld_map',    t:'wps',         lbl:'uses'},
+  {s:'weld_map',    t:'ndt',         lbl:'inspected in'},
+  // Analytics
+  {s:'oee',         t:'work_centre', lbl:'measures'},
+  {s:'hr_kpi',      t:'employee',    lbl:'measures'},
+  {s:'f_kpi',       t:'invoice_ar',  lbl:'tracks'},
+];
+
+// ── Build lookup & connection counts ─────────────────────────────
+const nMap = {};
+NODES.forEach(n => { nMap[n.id] = n; });
+
+const connCt = {};
+LINKS.forEach(l => {
+  connCt[l.s] = (connCt[l.s]||0)+1;
+  connCt[l.t] = (connCt[l.t]||0)+1;
+});
+
+const gNodes = NODES.map(n => ({
+  ...n,
+  color: MOD[n.module].color,
+  val: n.sz + (connCt[n.id]||0) * 0.7,
+}));
+
+const gLinks = LINKS.map(l => ({
+  source: l.s, target: l.t, lbl: l.lbl,
+  color: MOD[nMap[l.s].module].color,
+}));
+
+document.getElementById('sn').textContent = gNodes.length;
+document.getElementById('se').textContent = gLinks.length;
+document.getElementById('sm').textContent = Object.keys(MOD).length;
+
+function toggleProgress() {
+  const p = document.getElementById('progress-panel');
+  p.style.display = p.style.display === 'block' ? 'none' : 'block';
+}
+
+// ── Legend build ─────────────────────────────────────────────────
+const hiddenMods = new Set();
+const lgList = document.getElementById('lg-list');
+const modCount = {};
+gNodes.forEach(n => { modCount[n.module] = (modCount[n.module]||0)+1; });
+
+Object.entries(MOD).forEach(([key, mod]) => {
+  const el = document.createElement('div');
+  el.className = 'lg-item';
+  el.innerHTML = `<div class="lg-dot" style="background:${mod.color}; --glow:${mod.color}; box-shadow:0 0 7px ${mod.color}88;"></div>
+    <span class="lg-name">${mod.label}</span>
+    <span class="lg-n">${modCount[key]||0}</span>`;
+  el.onclick = () => {
+    if (hiddenMods.has(key)) { hiddenMods.delete(key); el.classList.remove('off'); }
+    else { hiddenMods.add(key); el.classList.add('off'); }
+    const vis = new Set(gNodes.filter(n => !hiddenMods.has(n.module)).map(n=>n.id));
+    Graph.nodeVisibility(n => vis.has(n.id))
+         .linkVisibility(l => {
+           const s = typeof l.source==='object'?l.source.id:l.source;
+           const t = typeof l.target==='object'?l.target.id:l.target;
+           return vis.has(s) && vis.has(t);
+         });
+  };
+  lgList.appendChild(el);
+});
+
+// ── Highlight state ───────────────────────────────────────────────
+let hlNodes = new Set();
+let hlLinks = new Set();
+
+function setHighlight(nodeId) {
+  hlNodes.clear(); hlLinks.clear();
+  if (!nodeId) { refreshColors(); return; }
+  hlNodes.add(nodeId);
+  gLinks.forEach(l => {
+    const s = typeof l.source==='object'?l.source.id:l.source;
+    const t = typeof l.target==='object'?l.target.id:l.target;
+    if (s===nodeId||t===nodeId) { hlLinks.add(l); hlNodes.add(s); hlNodes.add(t); }
+  });
+  refreshColors();
+}
+
+function refreshColors() {
+  Graph
+    .nodeOpacity(n => hlNodes.size && !hlNodes.has(n.id) ? 0.08 : 0.92)
+    .linkColor(l => {
+      if (!hlLinks.size) return l.color+'55';
+      return hlLinks.has(l) ? l.color+'EE' : '#0d0d2033';
+    })
+    .linkWidth(l => hlLinks.has(l) ? 3 : 0.8)
+    .linkDirectionalParticles(l => {
+      if (!showFlow) return 0;
+      return hlLinks.size ? (hlLinks.has(l) ? 7 : 0) : 3;
+    });
+}
+
+// ── Node 3-D object builder (label always visible) ────────────────
+function makeNodeObj(n) {
+  const group = new THREE.Group();
+  const r = Math.cbrt(n.val) * 4.2;
+  const col = new THREE.Color(n.color);
+
+  // Outer glow shell
+  const glowGeo = new THREE.SphereGeometry(r * 1.55, 14, 14);
+  const glowMat = new THREE.MeshBasicMaterial({
+    color: col, transparent: true, opacity: 0.07, depthWrite: false,
+  });
+  group.add(new THREE.Mesh(glowGeo, glowMat));
+
+  // Core sphere
+  const geo = new THREE.SphereGeometry(r, 18, 18);
+  const mat = new THREE.MeshPhongMaterial({
+    color: col,
+    emissive: col,
+    emissiveIntensity: 0.35,
+    shininess: 90,
+    transparent: true,
+    opacity: 0.92,
+  });
+  group.add(new THREE.Mesh(geo, mat));
+
+  // Equatorial ring for highly-connected nodes (≥8 connections)
+  if ((connCt[n.id]||0) >= 8) {
+    const ringGeo = new THREE.TorusGeometry(r * 1.45, r * 0.08, 6, 32);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: col, transparent: true, opacity: 0.45,
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI / 2.5;
+    group.add(ring);
+  }
+
+  // Always-on text label sprite
+  const cv = document.createElement('canvas');
+  const padding = 8, fontSize = 13;
+  cv.height = 28;
+  const ctx = cv.getContext('2d');
+  ctx.font = `600 ${fontSize}px system-ui, sans-serif`;
+  const tw = ctx.measureText(n.label).width;
+  cv.width = tw + padding * 2;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+
+  // pill background
+  ctx.fillStyle = 'rgba(8,6,20,0.68)';
+  const bx = 1, by = 3, bw = cv.width - 2, bh = cv.height - 5, br = 5;
+  ctx.beginPath();
+  ctx.moveTo(bx+br, by); ctx.lineTo(bx+bw-br, by);
+  ctx.quadraticCurveTo(bx+bw, by, bx+bw, by+br);
+  ctx.lineTo(bx+bw, by+bh-br);
+  ctx.quadraticCurveTo(bx+bw, by+bh, bx+bw-br, by+bh);
+  ctx.lineTo(bx+br, by+bh);
+  ctx.quadraticCurveTo(bx, by+bh, bx, by+bh-br);
+  ctx.lineTo(bx, by+br);
+  ctx.quadraticCurveTo(bx, by, bx+br, by);
+  ctx.closePath();
+  ctx.fill();
+
+  // colored left accent line
+  ctx.fillStyle = n.color;
+  ctx.fillRect(bx, by + br, 2, bh - br * 2);
+
+  // text
+  ctx.font = `600 ${fontSize}px system-ui, sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.88)';
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.fillText(n.label, padding, cv.height - 9);
+
+  const tex = new THREE.CanvasTexture(cv);
+  const smat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+  const sprite = new THREE.Sprite(smat);
+  const aspect = cv.width / cv.height;
+  sprite.scale.set(r * 0.75 * aspect, r * 0.75, 1);
+  sprite.position.y = r + r * 0.72;
+  group.add(sprite);
+
+  group.userData = { r, col: n.color };
+  return group;
+}
+
+// ── Graph ─────────────────────────────────────────────────────────
+let showFlow   = true;
+let showLabels = true;
+
+const Graph = ForceGraph3D({ controlType:'orbit' })(document.getElementById('graph'))
+  .backgroundColor('#05040F')
+  .width(window.innerWidth)
+  .height(window.innerHeight)
+  .graphData({ nodes: gNodes, links: gLinks })
+  .nodeLabel(() => '')   // disable HTML tooltip — label is in 3D sprite
+  .nodeThreeObject(n => makeNodeObj(n))
+  .nodeThreeObjectExtend(false)
+  .nodeColor(n => n.color)
+  .nodeRelSize(4)
+  .nodeVal(n => n.val)
+  .linkColor(l => l.color+'55')
+  .linkWidth(0.8)
+  .linkCurvature(0.2)
+  .linkDirectionalParticles(3)
+  .linkDirectionalParticleSpeed(0.005)
+  .linkDirectionalParticleWidth(2)
+  .linkDirectionalParticleColor(l => l.color)
+  .onNodeClick(n => {
+    setHighlight(n.id);
+    showInfo(n);
+    const dist = 110;
+    Graph.cameraPosition(
+      { x: n.x+dist, y: n.y+dist*.6, z: n.z+dist },
+      { x: n.x, y: n.y, z: n.z },
+      1100
+    );
+  })
+  .onNodeHover(n => {
+    const tip = document.getElementById('tip');
+    if (n) {
+      document.getElementById('t-name').textContent = n.label;
+      const sm = document.getElementById('t-mod');
+      sm.textContent = MOD[n.module].label;
+      sm.style.color = n.color;
+      tip.classList.add('show');
+    } else { tip.classList.remove('show'); }
+    document.getElementById('graph').style.cursor = n ? 'pointer' : 'default';
+  })
+  .onBackgroundClick(() => {
+    hlNodes.clear(); hlLinks.clear(); refreshColors();
+    document.getElementById('info').classList.remove('open');
+  });
+
+// Extra lighting
+const scene = Graph.scene();
+scene.add(new THREE.AmbientLight(0xaaaadd, 0.7));
+const dl = new THREE.DirectionalLight(0xffffff, 0.8);
+dl.position.set(200, 300, 200); scene.add(dl);
+const pl1 = new THREE.PointLight(0x7C6EFA, 2.0, 900);
+pl1.position.set(-200, 150, 50); scene.add(pl1);
+const pl2 = new THREE.PointLight(0x38BDF8, 1.2, 700);
+pl2.position.set(200, -100, -100); scene.add(pl2);
+
+// Animate rings slowly
+const clock = new THREE.Clock();
+Graph.onEngineTick && Graph.onEngineTick(() => {});  // no-op guard
+
+// ── Info panel ────────────────────────────────────────────────────
+function showInfo(n) {
+  const p = document.getElementById('info');
+  const mod = MOD[n.module];
+  // accent bar
+  document.getElementById('info-accent').style.background = n.color;
+  document.getElementById('info-accent').style.boxShadow = `0 0 12px ${n.color}99`;
+  document.getElementById('i-mod').textContent = mod.label;
+  document.getElementById('i-mod').style.color = n.color;
+  document.getElementById('i-name').textContent = n.label;
+  document.getElementById('i-desc').textContent = n.desc||'';
+
+  // connections
+  const cc = document.getElementById('i-conns');
+  cc.innerHTML = '';
+  gLinks.forEach(l => {
+    const s = typeof l.source==='object'?l.source.id:l.source;
+    const t = typeof l.target==='object'?l.target.id:l.target;
+    let peerId = null, dir = '';
+    if (s===n.id) { peerId=t; dir='→ '; }
+    else if (t===n.id) { peerId=s; dir='← '; }
+    if (!peerId) return;
+    const peer = nMap[peerId]; if (!peer) return;
+    const chip = document.createElement('div');
+    chip.className = 'i-chip';
+    chip.style.color = MOD[peer.module].color;
+    chip.style.borderColor = MOD[peer.module].color+'40';
+    chip.title = l.lbl;
+    chip.textContent = dir + peer.label;
+    chip.onclick = () => {
+      const full = gNodes.find(x=>x.id===peerId);
+      if (full) { setHighlight(full.id); showInfo(full); }
+    };
+    cc.appendChild(chip);
+  });
+
+  // fields
+  const ff = document.getElementById('i-fields');
+  ff.innerHTML = '';
+  if (n.fields) {
+    Object.entries(n.fields).forEach(([k,v]) => {
+      const row = document.createElement('div');
+      row.className = 'i-row';
+      row.innerHTML = `<span class="i-key">${k}</span><span class="i-val">${v}</span>`;
+      ff.appendChild(row);
+    });
+  }
+  p.classList.add('open');
+}
+
+document.getElementById('info-close').onclick = () => {
+  document.getElementById('info').classList.remove('open');
+  hlNodes.clear(); hlLinks.clear(); refreshColors();
+};
+
+// ── Controls ──────────────────────────────────────────────────────
+document.getElementById('b-reset').onclick = () => {
+  Graph.cameraPosition({x:0,y:0,z:500},{x:0,y:0,z:0},900);
+  hlNodes.clear(); hlLinks.clear(); refreshColors();
+  document.getElementById('info').classList.remove('open');
+  hiddenMods.clear();
+  document.querySelectorAll('.lg-item').forEach(el=>el.classList.remove('off'));
+  Graph.nodeVisibility(()=>true).linkVisibility(()=>true);
+};
+
+document.getElementById('b-flow').onclick = function() {
+  showFlow = !showFlow;
+  this.classList.toggle('on', showFlow);
+  Graph.linkDirectionalParticles(showFlow ? 2 : 0);
+};
+
+document.getElementById('b-labels').onclick = function() {
+  showLabels = !showLabels;
+  this.classList.toggle('on', showLabels);
+  // Rebuild node objects with or without sprite labels
+  Graph.nodeThreeObject(n => {
+    const group = makeNodeObj(n);
+    if (!showLabels) {
+      // remove the sprite (last child)
+      const last = group.children[group.children.length - 1];
+      if (last.isSprite) group.remove(last);
+    }
+    return group;
+  });
+};
+
+// ── Search ────────────────────────────────────────────────────────
+document.getElementById('srch').addEventListener('input', function() {
+  const q = this.value.toLowerCase().trim();
+  if (!q) { hlNodes.clear(); hlLinks.clear(); refreshColors(); return; }
+  const found = gNodes.find(n => n.label.toLowerCase().includes(q) || n.id.includes(q));
+  if (!found) return;
+  setHighlight(found.id);
+  showInfo(found);
+  Graph.cameraPosition(
+    {x:found.x+100, y:found.y+60, z:found.z+100},
+    {x:found.x, y:found.y, z:found.z}, 900
+  );
+});
+
+// ── Tooltip follow cursor ─────────────────────────────────────────
+document.addEventListener('mousemove', e => {
+  const t = document.getElementById('tip');
+  t.style.left = (e.clientX+16)+'px';
+  t.style.top  = (e.clientY-8)+'px';
+});
+
+// ── Resize ────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  Graph.width(window.innerWidth).height(window.innerHeight);
+});
+
+// ── Slow auto-rotate ──────────────────────────────────────────────
+let autoRot = true;
+document.getElementById('graph').addEventListener('pointerdown', () => { autoRot = false; });
+(function rotate() {
+  if (autoRot) {
+    const t = Date.now()/28000;
+    const {y} = Graph.cameraPosition();
+    const r = 480;
+    Graph.cameraPosition({x:r*Math.sin(t), y, z:r*Math.cos(t)});
+  }
+  requestAnimationFrame(rotate);
+})();
+</script>
+</body>
+</html>

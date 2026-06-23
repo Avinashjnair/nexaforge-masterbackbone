@@ -168,10 +168,16 @@ const BomAPI = {
 };
 
 const RoutingAPI = {
-  list:        (projectId)      => api.get(`/projects/${projectId}/routing`),
-  addStep:     (projectId, b)   => api.post(`/projects/${projectId}/routing`, b),
-  setStatus:   (projectId, stepId, status, hours) =>
-                                   api.patch(`/projects/${projectId}/routing/steps/${stepId}/status`, { status, actual_hours: hours }),
+  list:         (projectId)      => api.get(`/projects/${projectId}/routing`),
+  addStep:      (projectId, b)   => api.post(`/projects/${projectId}/routing`, b),
+  setStatus:    (projectId, stepId, status, hours) =>
+                                    api.patch(`/projects/${projectId}/routing/steps/${stepId}/status`, { status, actual_hours: hours }),
+  saveBaseline: (projectId)      => api.post(`/projects/${projectId}/routing/baseline`),
+  getBaseline:  (projectId)      => api.get(`/projects/${projectId}/routing/baseline`),
+};
+
+const ProductionAPI = {
+  oeeAll: (params) => api.get('/work-centres/oee', params),
 };
 
 const QCAPI = {
@@ -195,6 +201,7 @@ const QCAPI = {
 
   // NCR
   ncrList:     (params)         => api.get('/ncr', params),
+  ncrTrends:   (params)         => api.get('/ncr/trends', params),
   ncrGet:      (id)             => api.get(`/ncr/${id}`),
   ncrCreate:   (body)           => api.post('/ncr', body),
   ncrStatus:   (id, status, comments) => api.patch(`/ncr/${id}/status`, { status, comments }),
@@ -203,6 +210,20 @@ const QCAPI = {
   inspResult:  (id, result)     => api.post(`/inspections/${id}/result`, { result }),
   mrb:         (projectId)      => api.get(`/projects/${projectId}/weld-joints/mrb`),
   mrbPdf:      (projectId)      => `${API_BASE}/projects/${projectId}/mrb/pdf`,
+
+  // Calibration
+  calibrationList:   (params)   => api.get('/calibration', params),
+  calibrationAlerts: ()         => api.get('/calibration/alerts'),
+  calibrationUpdate: (id, body) => api.patch(`/calibration/${id}`, body),
+
+  // Customer complaints
+  complaintList:     (params)   => api.get('/customer-complaints', params),
+  complaintGet:      (id)       => api.get(`/customer-complaints/${id}`),
+  complaintCreate:   (body)     => api.post('/customer-complaints', body),
+  complaintUpdate:   (id, body) => api.patch(`/customer-complaints/${id}`, body),
+
+  // Vendor / supplier quality (incoming QC rejections)
+  vendorQuality:     (params)   => api.get('/vendors/quality', params),
 };
 
 const WeldingAPI = {
@@ -220,6 +241,14 @@ const WeldingAPI = {
   assignWelder:(projectId, jId, body) =>
                                    api.patch(`/projects/${projectId}/weld-joints/${jId}/welder`, body),
   ndeCreate:   (projectId, b)   => api.post(`/projects/${projectId}/weld-joints/nde`, b),
+  pwhtList:    (projectId)      => api.get(`/projects/${projectId}/pwht`),
+  pwhtCreate:  (projectId, b)   => api.post(`/projects/${projectId}/pwht`, b),
+  pwhtUpdate:  (projectId, id, b) => api.patch(`/projects/${projectId}/pwht/${id}`, b),
+  consumableBatches: (params)   => api.get('/consumables/batches', params),
+  consumableBatchCreate: (b)    => api.post('/consumables/batches', b),
+  consumableBatchUsage: (id)    => api.get(`/consumables/batches/${id}/usage`),
+  consumableLogUsage: (b)       => api.post('/consumables/usage', b),
+  consumablesByJoint: (jointId) => api.get(`/consumables/joints/${jointId}`),
 };
 
 const CrmAPI = {
@@ -408,6 +437,23 @@ const HrAPI = {
 const WarehouseAPI = {
   stock:       (params)         => api.get('/inventory/items', params),
   movements:   (params)         => api.get('/inventory/movements', params),
+
+  // GRN (goods receipt notes) — source of truth for stock receipts
+  grnList:     (params)         => api.get('/grn', params),
+  grnGet:      (id)             => api.get(`/grn/${id}`),
+  grnCreate:   (body)           => api.post('/grn', body),
+
+  // Remnants / offcuts
+  remnants:    (params)         => api.get('/remnants', params),
+  remnantGet:  (id)             => api.get(`/remnants/${id}`),
+  remnantCreate:(body)          => api.post('/remnants', body),
+  remnantReserve:(id, body)     => api.patch(`/remnants/${id}/reserve`, body),
+
+  // Material requests (raised by production / store)
+  mrList:      (params)         => api.get('/material-requests', params),
+  mrGet:       (id)             => api.get(`/material-requests/${id}`),
+  mrCreate:    (body)           => api.post('/material-requests', body),
+  mrStatus:    (id, status)     => api.patch(`/material-requests/${id}/status`, { status }),
 };
 
 const AnalyticsAPI = {

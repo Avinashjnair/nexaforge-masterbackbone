@@ -17,21 +17,21 @@ function renderLogin() {
   `;
 
   overlay.innerHTML = `
-    <!-- Soft lavender ambient surfaces (no blur, V2 compliant) -->
+    <!-- Steel-blue / indigo ambient orbs on the dark base -->
     <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none">
       <div style="
         position:absolute;top:-15%;right:-8%;width:520px;height:520px;border-radius:50%;
-        background:radial-gradient(circle, rgba(139,131,196,0.18) 0%, rgba(232,230,240,0) 70%);
+        background:radial-gradient(circle, rgba(56,189,248,0.20) 0%, rgba(10,15,28,0) 70%);
         animation:loginOrbFloat 14s ease-in-out infinite;
       "></div>
       <div style="
         position:absolute;bottom:-12%;left:-6%;width:440px;height:440px;border-radius:50%;
-        background:radial-gradient(circle, rgba(16,59,46,0.08) 0%, rgba(232,230,240,0) 70%);
+        background:radial-gradient(circle, rgba(129,140,248,0.18) 0%, rgba(10,15,28,0) 70%);
         animation:loginOrbFloat 18s ease-in-out infinite reverse;
       "></div>
       <div style="
         position:absolute;top:35%;left:55%;width:300px;height:300px;border-radius:50%;
-        background:radial-gradient(circle, rgba(196,192,224,0.20) 0%, rgba(232,230,240,0) 70%);
+        background:radial-gradient(circle, rgba(45,212,191,0.14) 0%, rgba(10,15,28,0) 70%);
         animation:loginOrbFloat 20s ease-in-out infinite 3s;
       "></div>
     </div>
@@ -39,7 +39,7 @@ function renderLogin() {
     <div style="width:100%;max-width:420px;padding:40px 24px;position:relative;z-index:1;animation:loginCardIn 0.55s cubic-bezier(0.22,1,0.36,1) both">
       <!-- Logo -->
       <div style="text-align:center;margin-bottom:32px">
-        <div style="display:inline-flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:20px;background:var(--brand);box-shadow:var(--shadow-accent), -3px -3px 10px rgba(255,255,255,0.7);margin-bottom:18px">
+        <div style="display:inline-flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:20px;background:linear-gradient(135deg, #38bdf8, #6366f1);box-shadow:var(--shadow-accent);margin-bottom:18px">
           <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
             <rect x="2" y="2" width="11" height="11" rx="2.5" fill="rgba(255,255,255,0.95)"/>
             <rect x="15" y="2" width="11" height="11" rx="2.5" fill="rgba(255,255,255,0.55)"/>
@@ -54,7 +54,7 @@ function renderLogin() {
           Engineering ERP
         </div>
       </div>      <!-- Neumorphic card -->
-      <div style="padding:34px;border-radius:var(--radius-2xl);background:var(--bg-card);box-shadow:var(--shadow-card)">
+      <div style="padding:34px;border-radius:var(--radius-2xl);background:var(--glass-bg-strong);border:1px solid var(--glass-border);box-shadow:var(--shadow-card), var(--shadow-glass-inset);backdrop-filter:var(--glass-blur-heavy);-webkit-backdrop-filter:var(--glass-blur-heavy)">
         <div id="loginCardHeader">
           <div id="loginTitle" style="font-size:19px;font-weight:700;color:var(--text-primary);margin-bottom:4px;font-family:var(--font-display);letter-spacing:-0.01em">Welcome back</div>
           <div id="loginSub" style="font-size:12.5px;color:var(--text-muted);margin-bottom:24px">Sign in to your manufacturing dashboard</div>
@@ -249,25 +249,22 @@ function renderLogin() {
       }
       .nf-login-input::placeholder { color:var(--text-hint); }
       .nf-login-input:focus {
-        box-shadow:
-          inset 2px 2px 5px rgba(180,175,210,0.25),
-          inset -2px -2px 5px rgba(255,255,255,0.65),
-          0 0 0 3px rgba(139,131,196,0.18);
+        box-shadow: var(--shadow-inset), 0 0 0 3px var(--brand-glow);
       }
 
       .nf-login-primary {
         width:100%; padding:13px; font-size:13px; font-weight:700;
         font-family:var(--font-display); letter-spacing:0.02em;
-        color:#fff; background:var(--brand);
+        color:#fff; background:linear-gradient(135deg, #38bdf8, #6366f1);
         border:none; border-radius:var(--radius-md);
         cursor:pointer;
-        box-shadow:var(--shadow-accent), -3px -3px 8px rgba(255,255,255,0.55);
-        transition:transform 0.18s ease, box-shadow 0.25s ease, background 0.2s;
+        box-shadow:var(--shadow-accent);
+        transition:transform 0.18s ease, box-shadow 0.25s ease, filter 0.2s;
       }
       .nf-login-primary:hover:not(:disabled) {
-        background:var(--brand-mid);
+        filter:brightness(1.08);
         transform:translateY(-1px);
-        box-shadow:5px 5px 14px rgba(16,59,46,0.28), -4px -4px 10px rgba(255,255,255,0.65);
+        box-shadow:0 16px 34px -10px rgba(56,189,248,0.65);
       }
       .nf-login-primary:active { transform:translateY(0); box-shadow:var(--shadow-inset); }
       .nf-login-primary:disabled { opacity:0.6; cursor:wait; }
@@ -275,8 +272,8 @@ function renderLogin() {
       .nf-login-secondary {
         width:100%; padding:11px; font-size:12px; font-weight:600;
         font-family:var(--font-display);
-        color:var(--text-secondary); background:var(--bg-card);
-        border:none; border-radius:var(--radius-md);
+        color:var(--text-secondary); background:var(--glass-bg-strong);
+        border:1px solid var(--glass-border); border-radius:var(--radius-md);
         cursor:pointer;
         box-shadow:var(--shadow-sm);
         transition:transform 0.18s ease, box-shadow 0.25s ease, color 0.2s;
@@ -290,8 +287,8 @@ function renderLogin() {
 
       .quick-access-btn {
         width:100%; aspect-ratio:1;
-        border-radius:var(--radius-md); border:none;
-        background:var(--bg-card);
+        border-radius:var(--radius-md); border:1px solid var(--glass-border);
+        background:var(--glass-bg-strong);
         display:flex; align-items:center; justify-content:center;
         cursor:pointer;
         box-shadow:var(--shadow-sm);

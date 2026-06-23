@@ -76,4 +76,49 @@ router.patch("/steps/:stepId/status", requireRole("senior"), async (req, res, ne
   }
 });
 
+// POST /projects/:id/routing/baseline — snapshot current routing steps as baseline
+router.post("/baseline", requireRole("senior"), async (req, res, next) => {
+  try {
+    const steps = await db("routing_steps")
+      .where("project_id", req.params.id)
+      .orderBy("step_order")
+      .select("step_order", "name", "start_date", "end_date", "planned_hours", "status");
+
+    if (!steps.length) {
+      return res.status(400).json({ error: "No routing steps to snapshot" });
+    }
+
+    const [baseline] = await db("schedule_baselines")
+      .insert({
+        project_id: req.params.id,
+        label: req.body.label || `Baseline ${new Date().toISOString().slice(0, 10)}`,
+        steps_snapshot: JSON.stringify(steps),
+        created_by: req.user?.sub || null,
+      })
+      .returning("*");
+
+    res.status(201).json(baseline);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /projects/:id/routing/baseline — most recent baseline for this project
+router.get("/baseline", async (req, res, next) => {
+  try {
+    const baseline = await db("schedule_baselines")
+      .where("project_id", req.params.id)
+      .orderBy("created_at", "desc")
+      .first();
+
+    if (!baseline) return res.status(404).json({ error: "No baseline found" });
+    if (typeof baseline.steps_snapshot === "string") {
+      baseline.steps_snapshot = JSON.parse(baseline.steps_snapshot);
+    }
+    res.json(baseline);
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

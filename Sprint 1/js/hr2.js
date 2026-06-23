@@ -5,7 +5,8 @@
 /* ═══════════════════════════════════════════════════════════
    1. HR CONTROL CENTRE ( bespoke bento landing page )
    ═══════════════════════════════════════════════════════════ */
-function renderHRControlCentre() {
+async function renderHRControlCentre() {
+  await _loadHRFromAPI();
   const emps = HRData.employees;
   const totalCerts = emps.reduce((s, e) => s + e.certifications.length, 0);
   const expiredCerts = emps.reduce((s, e) => s + e.certifications.filter(c => c.status === 'expired').length, 0);

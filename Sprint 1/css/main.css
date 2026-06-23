@@ -1,59 +1,65 @@
 /* ============================================================
    NexaForge ERP — Main Styles
-   Design language: V2 — Soft Neumorphic SaaS
+   Design language: V3 — Warm Frosted Glass
    ============================================================ */
 
 :root {
-  /* ── Page & Surface — V3 Warm Frosted Glass (translucent over the gradient) ── */
-  --bg-page:       #E8E6F0;                    /* solid fallback; body uses the gradient */
-  --bg-panel:      rgba(255,255,255,0.55);
-  --bg-card:       rgba(255,255,255,0.55);
-  --bg-card-inner: rgba(255,255,255,0.42);
-  --bg-input:      rgba(255,255,255,0.72);      /* kept opaque-ish for form legibility */
-  --bg-hover:      rgba(255,255,255,0.46);
+  /* ── Page & Surface — dark base with translucent white glass on top ── */
+  --bg-page:       #0a0f1c;                     /* deep industrial navy base */
+  --bg-panel:      rgba(255,255,255,0.035);     /* faint frosted content panel */
+  --bg-card:       rgba(255,255,255,0.055);
+  --bg-card-inner: rgba(255,255,255,0.04);
+  --bg-input:      rgba(255,255,255,0.09);      /* stronger fill for form legibility */
+  --bg-hover:      rgba(255,255,255,0.07);
 
-  /* Legacy aliases used by module inline styles — now translucent (scope B) */
-  --bg-base:       #E8E6F0;
-  --bg-surface:    rgba(255,255,255,0.55);
-  --bg-subtle:     rgba(255,255,255,0.42);
-  --bg-elevated:   rgba(255,255,255,0.62);
-  --bg-active:     rgba(255,255,255,0.55);
-  --border:        rgba(180,175,210,0.20);
-  --border-md:     rgba(180,175,210,0.30);
-  --border-strong: rgba(180,175,210,0.45);
-  --border-subtle: rgba(180,175,210,0.12);
+  /* Legacy aliases used by module inline styles — dark glass */
+  --bg-base:       #0a0f1c;
+  --bg-surface:    rgba(255,255,255,0.055);
+  --bg-subtle:     rgba(255,255,255,0.04);
+  --bg-elevated:   rgba(255,255,255,0.09);
+  --bg-active:     rgba(255,255,255,0.09);
+  --border:        rgba(255,255,255,0.10);
+  --border-md:     rgba(255,255,255,0.14);
+  --border-strong: rgba(255,255,255,0.22);
+  --border-subtle: rgba(255,255,255,0.06);
 
-  /* ── Brand — NexaForge forest green ── */
-  --brand:         #103B2E;
-  --brand-mid:     #1A5C46;
-  --brand-light:   #E6EFEC;
-  --brand-glow:    rgba(16,59,46,0.10);
+  /* ── Brand — steel-blue → indigo (primary actions) ── */
+  --brand:         #38bdf8;
+  --brand-mid:     #6366f1;
+  --brand-light:   rgba(56,189,248,0.14);
+  --brand-glow:    rgba(56,189,248,0.30);
 
-  /* ── Accent — soft lavender/violet ── */
-  --accent:        #8B83C4;
-  --accent-light:  #C4C0E0;
-  --accent-bg:     #EEEDF6;
+  /* ── Accent — indigo ── */
+  --accent:        #818cf8;
+  --accent-light:  #a5b4fc;
+  --accent-bg:     rgba(129,140,248,0.14);
 
-  /* ── Warm accent (V3) — coral/salmon for actions & unread dots ── */
-  --accent-warm:    #E8837C;
-  --accent-warm-bg: rgba(232,131,124,0.12);
+  /* ── Warm accent — rose for actions & unread dots ── */
+  --accent-warm:    #fb7185;
+  --accent-warm-bg: rgba(251,113,133,0.14);
 
   /* ── Legacy accent aliases ── */
-  --accent-dim:    #EEEDF6;
-  --text-accent:   var(--brand);
-  --navy:          #103B2E;
+  --accent-dim:    rgba(129,140,248,0.14);
+  --text-accent:   #7dd3fc;
+  --navy:          #38bdf8;
 
-  /* ── Status ── */
-  --green:    #0D7754;  --green-bg:  #E6F5F0;
-  --amber:    #B45309;  --amber-bg:  #FEF3E2;
-  --red:      #C0392B;  --red-bg:    #FDECEA;
-  --blue:     #1D6FA4;  --blue-bg:   #E8F2FA;
+  /* ── Status — bright on dark, translucent tint backgrounds ── */
+  --green:    #34d399;  --green-bg:  rgba(52,211,153,0.14);
+  --amber:    #fbbf24;  --amber-bg:  rgba(251,191,36,0.16);
+  --red:      #fb7185;  --red-bg:    rgba(251,113,133,0.16);
+  --blue:     #38bdf8;  --blue-bg:   rgba(56,189,248,0.14);
 
-  /* ── Text ── */
-  --text-primary:   #1A1A2E;
-  --text-secondary: #4A4A6A;
-  --text-muted:     #8A8AAA;
-  --text-hint:      #B0B0C8;
+  /* ── Text — light on dark ── */
+  --text-primary:   #eef2f9;
+  --text-secondary: rgba(238,242,249,0.72);
+  --text-muted:     rgba(238,242,249,0.50);
+  --text-hint:      rgba(238,242,249,0.34);
+
+  /* ── Status hue washes — top-of-card accent keyed to data state ── */
+  --status-hue-good: rgba(52,211,153,0.20);
+  --status-hue-info: rgba(56,189,248,0.20);
+  --status-hue-warn: rgba(251,191,36,0.22);
+  --status-hue-bad:  rgba(251,113,133,0.22);
 
   /* ── Layout ── */
   --sidebar-w:         68px;
@@ -69,64 +75,68 @@
   --radius-2xl:  36px;
   --radius-pill: 999px;
 
-  /* ── Typography ── */
-  --font-display: 'DM Sans', system-ui, sans-serif;
-  --font-body:    'DM Sans', system-ui, sans-serif;
-  --font-mono:    'DM Mono', monospace;
+  /* ── Typography — Sora display / Manrope body / IBM Plex Mono ── */
+  --font-display: 'Sora', system-ui, sans-serif;
+  --font-body:    'Manrope', system-ui, sans-serif;
+  --font-mono:    'IBM Plex Mono', monospace;
 
-  /* ── Shadows — neumorphic pairs ── */
-  --shadow-card:
-    6px 6px 16px rgba(180,175,210,0.35),
-    -4px -4px 12px rgba(255,255,255,0.75);
-
-  --shadow-card-hover:
-    8px 8px 20px rgba(180,175,210,0.45),
-    -4px -4px 14px rgba(255,255,255,0.85);
-
-  --shadow-sm:
-    3px 3px 8px rgba(180,175,210,0.30),
-    -2px -2px 6px rgba(255,255,255,0.70);
-
-  --shadow-inset:
-    inset 2px 2px 5px rgba(180,175,210,0.25),
-    inset -2px -2px 5px rgba(255,255,255,0.65);
-
-  --shadow-pill-active:
-    3px 3px 8px rgba(180,175,210,0.30),
-    -2px -2px 6px rgba(255,255,255,0.80);
-
-  --shadow-accent: 4px 4px 10px rgba(16,59,46,0.25);
+  /* ── Shadows — deep dark drops + faint top edge highlight ── */
+  --shadow-card:        0 16px 40px -16px rgba(2,8,23,0.70);
+  --shadow-card-hover:  0 22px 52px -16px rgba(2,8,23,0.85);
+  --shadow-sm:          0 8px 24px -12px rgba(2,8,23,0.60);
+  --shadow-inset:       inset 0 1px 0 rgba(255,255,255,0.06);
+  --shadow-pill-active: 0 6px 18px -8px rgba(2,8,23,0.70);
+  --shadow-accent:      0 12px 28px -10px rgba(56,189,248,0.55);
 
   /* Legacy shadow aliases */
-  --shadow-xs:         2px 2px 4px rgba(180,175,210,0.20), -1px -1px 3px rgba(255,255,255,0.60);
-  --shadow-md:         6px 6px 16px rgba(180,175,210,0.35), -4px -4px 12px rgba(255,255,255,0.75);
-  --shadow-lg:         8px 8px 20px rgba(180,175,210,0.45), -4px -4px 14px rgba(255,255,255,0.85);
-  --shadow-glass:      0 8px 32px rgba(140,120,160,0.12);
-  --shadow-glass-hover:0 12px 40px rgba(140,120,160,0.16);
-  --shadow-glass-lg:   0 16px 48px rgba(140,120,160,0.18);
+  --shadow-xs:         0 4px 14px -10px rgba(2,8,23,0.50);
+  --shadow-md:         0 16px 40px -16px rgba(2,8,23,0.70);
+  --shadow-lg:         0 24px 56px -18px rgba(2,8,23,0.80);
+  --shadow-glass:      0 16px 40px -16px rgba(2,8,23,0.70);
+  --shadow-glass-hover:0 22px 52px -16px rgba(2,8,23,0.85);
+  --shadow-glass-lg:   0 24px 56px -18px rgba(2,8,23,0.80);
 
-  /* ── Glass tokens — V3 active: translucent surfaces + real backdrop blur ── */
-  --glass-bg:            rgba(255,255,255,0.55);
-  --glass-bg-strong:     rgba(255,255,255,0.62);
-  --glass-bg-subtle:     rgba(255,255,255,0.42);
-  --glass-bg-hover:      rgba(255,255,255,0.50);
-  --glass-border:        rgba(255,255,255,0.45);
-  --glass-border-subtle: rgba(255,255,255,0.28);
-  --glass-blur:          blur(20px);
-  --glass-blur-heavy:    blur(24px);
-  --glass-blur-sm:       blur(12px);
-  /* glass edge highlight instead of the old neumorphic inset */
-  --shadow-glass-inset:  inset 0 1px 0 rgba(255,255,255,0.55);
+  /* ── Glass tokens — translucent white surfaces + real backdrop blur ── */
+  --glass-bg:            rgba(255,255,255,0.055);
+  --glass-bg-strong:     rgba(255,255,255,0.09);
+  --glass-bg-subtle:     rgba(255,255,255,0.04);
+  --glass-bg-hover:      rgba(255,255,255,0.07);
+  --glass-border:        rgba(255,255,255,0.10);
+  --glass-border-subtle: rgba(255,255,255,0.06);
+  --glass-blur:          blur(22px) saturate(1.6);
+  --glass-blur-heavy:    blur(28px) saturate(1.7);
+  --glass-blur-sm:       blur(14px) saturate(1.5);
+  /* glass edge highlight */
+  --shadow-glass-inset:  inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+/* ── Fallback: no backdrop-filter → more opaque dark surfaces ── */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --bg-panel:        rgba(18,25,42,0.92);
+    --bg-card:         rgba(22,30,50,0.94);
+    --bg-card-inner:   rgba(26,34,56,0.94);
+    --bg-input:        rgba(30,40,64,0.96);
+    --bg-surface:      rgba(22,30,50,0.94);
+    --bg-elevated:     rgba(30,40,64,0.96);
+    --glass-bg:        rgba(22,30,50,0.94);
+    --glass-bg-strong: rgba(30,40,64,0.96);
+    --glass-blur:      none;
+    --glass-blur-heavy:none;
+    --glass-blur-sm:   none;
+  }
 }
 
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 14px; scroll-behavior: smooth; }
 
-/* ── Background — V3 warm peach→lilac gradient with ambient orbs ── */
+/* ── Background — dark industrial base with steel-blue/indigo ambient orbs + grain ── */
 body {
   font-family: var(--font-body);
-  background: linear-gradient(135deg, #F0E4DA 0%, #E8E2F0 50%, #DDD6F0 100%);
+  background:
+    radial-gradient(rgba(255,255,255,0.045) 1px, transparent 1px) 0 0 / 28px 28px,
+    var(--bg-base);
   background-attachment: fixed;
   color: var(--text-primary);
   display: flex;
@@ -143,17 +153,17 @@ body::after {
   z-index: -1;
   pointer-events: none;
   border-radius: 50%;
-  filter: blur(80px);
+  filter: blur(90px);
 }
 body::before {
-  width: 46vw; height: 46vw;
-  top: -12vw; left: -8vw;
-  background: radial-gradient(circle, rgba(232,131,124,0.30) 0%, rgba(232,131,124,0) 70%);
+  width: 56vw; height: 56vw;
+  top: -22vw; right: -14vw; left: auto;
+  background: radial-gradient(circle, rgba(56,189,248,0.18) 0%, rgba(56,189,248,0) 70%);
 }
 body::after {
-  width: 50vw; height: 50vw;
-  bottom: -16vw; right: -10vw;
-  background: radial-gradient(circle, rgba(196,160,232,0.32) 0%, rgba(196,160,232,0) 70%);
+  width: 46vw; height: 46vw;
+  bottom: -18vw; left: -10vw; right: auto;
+  background: radial-gradient(circle, rgba(129,140,248,0.16) 0%, rgba(129,140,248,0) 70%);
 }
 
 a { color: inherit; text-decoration: none; cursor: pointer; }
@@ -180,7 +190,7 @@ ul { list-style: none; }
 .topbar {
   height: var(--topbar-h);
   background: var(--bg-panel);
-  border-bottom: 1px solid rgba(180,175,210,0.15);
+  border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -311,11 +321,11 @@ ul { list-style: none; }
 .btn:active { transform: scale(0.97); }
 
 .btn-primary {
-  background: var(--brand);
+  background: linear-gradient(135deg, #38bdf8, #6366f1);
   color: #fff;
-  box-shadow: 4px 4px 10px rgba(16,59,46,0.25);
+  box-shadow: var(--shadow-accent);
 }
-.btn-primary:hover { box-shadow: 6px 6px 14px rgba(16,59,46,0.35); transform: translateY(-1px); }
+.btn-primary:hover { box-shadow: 0 16px 34px -10px rgba(56,189,248,0.65); transform: translateY(-1px); }
 
 .btn-secondary {
   background: var(--bg-card);
@@ -368,7 +378,7 @@ ul { list-style: none; }
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(180,175,210,0.20);
+  border-bottom: 1px solid var(--border);
 }
 .card-title {
   font-size: 11px;
@@ -470,7 +480,7 @@ ul { list-style: none; }
 .badge-accent { background: var(--accent-bg);  color: var(--accent); }
 .badge-muted  { background: var(--bg-hover);   color: var(--text-muted); }
 .badge-dark   { background: var(--text-primary); color: white; }
-.badge-outline{ background: transparent; color: var(--text-muted); border: 1px solid rgba(180,175,210,0.30); }
+.badge-outline{ background: transparent; color: var(--text-muted); border: 1px solid var(--border-md); }
 
 /* ── Tab toggle — pill style ── */
 .tab-toggle {
@@ -497,7 +507,8 @@ ul { list-style: none; }
 }
 .tab-toggle-item:hover { color: var(--text-secondary); }
 .tab-toggle-item.active {
-  background: #FFFFFF;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
   color: var(--text-primary);
   box-shadow: var(--shadow-pill-active);
 }
@@ -505,7 +516,7 @@ ul { list-style: none; }
 /* ── Tables ── */
 /* Tables sit on translucent glass — a faint backing + opaque sticky header
    keep dense rows legible without losing the frosted feel. */
-.table-wrap { overflow-x: auto; background: rgba(255,255,255,0.30); border-radius: var(--radius-md); }
+.table-wrap { overflow-x: auto; background: rgba(255,255,255,0.03); border-radius: var(--radius-md); }
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th {
   text-align: left;
@@ -515,9 +526,9 @@ ul { list-style: none; }
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  border-bottom: 1px solid rgba(180,175,210,0.20);
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
-  background: rgba(247,245,251,0.92);  /* opaque so scrolling rows don't bleed through sticky header */
+  background: #121a2e;  /* opaque dark so scrolling rows don't bleed through sticky header */
   position: sticky;
   top: 0;
 }
@@ -525,7 +536,7 @@ ul { list-style: none; }
   padding: 13px 16px;
   font-size: 13px;
   color: var(--text-secondary);
-  border-bottom: 1px solid rgba(180,175,210,0.15);
+  border-bottom: 1px solid var(--border-subtle);
   vertical-align: middle;
 }
 .data-table tbody tr { transition: background 0.12s; }
@@ -538,7 +549,7 @@ ul { list-style: none; }
 .grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
 
 /* ── Divider ── */
-.divider { height: 1px; background: rgba(180,175,210,0.20); margin: 20px 0; }
+.divider { height: 1px; background: var(--border); margin: 20px 0; }
 
 /* ── Progress bar ── */
 .progress-bar {
@@ -606,15 +617,18 @@ input:focus, select:focus, textarea:focus {
 }
 .toast {
   width: 340px;
-  background: var(--bg-panel);
+  background: var(--glass-bg-strong);
   border-radius: var(--radius-lg);
   padding: 16px 20px;
   font-size: 13px;
   font-family: var(--font-body);
   color: var(--text-primary);
   display: flex; align-items: flex-start; gap: 10px;
-  box-shadow: 8px 8px 20px rgba(180,175,210,0.40), -4px -4px 12px rgba(255,255,255,0.75);
+  box-shadow: var(--shadow-card), var(--shadow-glass-inset);
+  border: 1px solid var(--glass-border);
   border-left: 4px solid;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   animation: toastIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
 }
 @keyframes toastIn {
@@ -651,8 +665,8 @@ input:focus, select:focus, textarea:focus {
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(180,175,210,0.40); border-radius: var(--radius-pill); }
-::-webkit-scrollbar-thumb:hover { background: rgba(180,175,210,0.60); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: var(--radius-pill); }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.30); }
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
@@ -705,26 +719,54 @@ input:focus, select:focus, textarea:focus {
   }
   .greeting-orb { animation: none; }
 }
-/* Honour the OS "reduce transparency" setting — fall back to solid V2 surfaces,
-   no blur, no ambient orbs. */
+/* Honour the OS "reduce transparency" setting — fall back to solid dark
+   surfaces, no blur, no ambient orbs. */
 @media (prefers-reduced-transparency: reduce) {
   :root {
-    --glass-bg:        #FAFAFA;
-    --glass-bg-strong: #F4F2FA;
-    --glass-bg-subtle: #F0EEF7;
-    --glass-bg-hover:  #EDEAF5;
+    --glass-bg:        #141b2e;
+    --glass-bg-strong: #1c2640;
+    --glass-bg-subtle: #11182a;
+    --glass-bg-hover:  #1c2640;
     --glass-blur:      none;
     --glass-blur-heavy:none;
     --glass-blur-sm:   none;
-    --bg-panel:        #F6F5FB;
-    --bg-card:         #FAFAFA;
-    --bg-card-inner:   #F3F2F8;
-    --bg-hover:        #EDEAF5;
-    --bg-surface:      #FAFAFA;
-    --bg-subtle:       #F3F2F8;
-    --bg-elevated:     #F6F5FB;
-    --bg-active:       #EDEAF5;
+    --bg-panel:        #0e1424;
+    --bg-card:         #141b2e;
+    --bg-card-inner:   #11182a;
+    --bg-hover:        #1c2640;
+    --bg-surface:      #141b2e;
+    --bg-subtle:       #11182a;
+    --bg-elevated:     #1c2640;
+    --bg-active:       #1c2640;
   }
-  body { background: #E8E6F0; }
+  body { background: #0a0f1c; }
   body::before, body::after { display: none; }
+}
+
+/* ── Module active-tab pills (analytics/finance/marketing hardcode white) ── */
+.ana-tab.active, .fin-tab.active, .crm-tab.active {
+  background: var(--glass-bg-strong);
+  color: var(--text-primary);
+  border-color: var(--glass-border);
+  box-shadow: var(--shadow-pill-active);
+}
+
+/* ── Status-hue card wash (Nexa Forge widget accent, keyed to data state) ──
+   Apply data-status="good|info|warn|bad" to any .card / .metric-card to get a
+   permanent colored top wash + accent line, matching the dashboard design. */
+.card[data-status], .metric-card[data-status] { position: relative; overflow: hidden; }
+.card[data-status]::after, .metric-card[data-status]::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 84px;
+  z-index: 0; pointer-events: none; opacity: 0.85;
+  background: radial-gradient(120% 100% at 50% 0%, var(--_hue, transparent), transparent 72%);
+}
+.card[data-status] > *, .metric-card[data-status] > * { position: relative; z-index: 1; }
+.card[data-status="good"], .metric-card[data-status="good"] { --_hue: var(--status-hue-good); }
+.card[data-status="info"], .metric-card[data-status="info"] { --_hue: var(--status-hue-info); }
+.card[data-status="warn"], .metric-card[data-status="warn"] { --_hue: var(--status-hue-warn); }
+.card[data-status="bad"],  .metric-card[data-status="bad"]  { --_hue: var(--status-hue-bad); }
+.card[data-status]::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; z-index: 1;
+  background: linear-gradient(90deg, transparent, var(--_hue), transparent);
+  opacity: 0.9; pointer-events: none;
 }

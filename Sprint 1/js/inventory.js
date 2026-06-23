@@ -737,8 +737,91 @@ function renderStore_analytics() {
   mountAnaCockpit('store', { append: true, heading: 'Cross-functional analytics' });
 }
 
+/* ── Inventory API loader — populates InvData from backend (no-op in demo mode) ── */
+async function _loadInvFromAPI() {
+  if (typeof AppState !== 'undefined' && AppState.isDemoMode) return;
+  try {
+    const [remnantsRes, mrRes, grnRes] = await Promise.allSettled([
+      WarehouseAPI.remnants({ limit: 200 }),
+      WarehouseAPI.mrList({ limit: 200 }),
+      WarehouseAPI.grnList({ limit: 200 }),
+    ]);
+
+    if (remnantsRes.status === 'fulfilled') {
+      const raw = remnantsRes.value || [];
+      if (raw.length) {
+        InvData.remnants = raw.map(r => ({
+          id: r.id,
+          matCode: r.parent_item_code || r.id.slice(0, 8).toUpperCase(),
+          grade: r.material || '',
+          spec: r.material || '',
+          thick: r.thickness_mm || 0,
+          width: r.width_mm || 0,
+          length: r.length_mm || 0,
+          weight: r.weight_kg || 0,
+          project: r.source_project_no || '',
+          status: r.status || 'available',
+          location: r.location || '',
+          heatNo: r.heat_no || '',
+          notes: r.notes || '',
+        }));
+      }
+    }
+
+    if (mrRes.status === 'fulfilled') {
+      const raw = mrRes.value || [];
+      if (raw.length) {
+        InvData.requisitions = raw.map(r => ({
+          id: r.mr_no || r.id,
+          project: r.project_no || '',
+          requestedBy: r.requested_by_name || '',
+          requestedDate: (r.created_at || '').slice(0, 10),
+          priority: r.priority || 'normal',
+          status: r.status || 'pending',
+          items: (r.lines || []).map(l => ({
+            matCode: l.material_code || '',
+            description: l.description || '',
+            qty: l.quantity_required || 0,
+            unit: l.unit || 'EA',
+            status: l.status || 'pending',
+          })),
+        }));
+      }
+    }
+
+    if (grnRes.status === 'fulfilled') {
+      const raw = grnRes.value.grns || grnRes.value || [];
+      if (raw.length) {
+        // Map GRN lines into inventory items (received stock)
+        const itemMap = {};
+        raw.forEach(grn => {
+          (grn.lines || []).forEach(l => {
+            const key = l.material_code || l.id;
+            if (!itemMap[key]) {
+              itemMap[key] = {
+                id: key, matCode: l.material_code || key,
+                description: l.description || '', category: l.category || 'General',
+                unit: l.unit || 'EA', qtyOnHand: 0, totalValue: 0,
+                status: 'available', location: l.location || '', heatNo: l.heat_no || '',
+                minStock: 0, maxStock: 0, unitCost: l.unit_price || 0,
+              };
+            }
+            itemMap[key].qtyOnHand += Number(l.quantity_received || 0);
+            itemMap[key].totalValue += Number(l.quantity_received || 0) * Number(l.unit_price || 0);
+          });
+        });
+        const items = Object.values(itemMap);
+        if (items.length) InvData.items = items;
+      }
+    }
+  } catch (e) {
+    // Silent — seed data remains
+  }
+}
+
 /* ── Legacy Entry Point (Redirects to Control Centre) ───────── */
 async function renderInventory() {
+  await _loadInvFromAPI();
   enterStoreModule();
 }
 

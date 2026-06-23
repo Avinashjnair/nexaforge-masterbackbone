@@ -246,4 +246,44 @@ router.get("/:id/rca", async (req, res, next) => {
   }
 });
 
+// GET /ncr/trends?from=&to=&groupBy=month — monthly NCR open/close/repeat counts
+router.get("/trends", async (req, res, next) => {
+  try {
+    const { groupBy = "month" } = req.query;
+    const from = req.query.from || new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
+    const to   = req.query.to   || new Date().toISOString().slice(0, 10);
+
+    const opened = await db("ncrs")
+      .where("created_at", ">=", from)
+      .where("created_at", "<=", to)
+      .select(db.raw("TO_CHAR(created_at, 'YYYY-MM') as month"), db.raw("COUNT(*) as opened"))
+      .groupByRaw("TO_CHAR(created_at, 'YYYY-MM')")
+      .orderBy("month");
+
+    const closed = await db("ncrs")
+      .whereIn("status", ["closed", "voided"])
+      .whereNotNull("updated_at")
+      .where("updated_at", ">=", from)
+      .where("updated_at", "<=", to)
+      .select(db.raw("TO_CHAR(updated_at, 'YYYY-MM') as month"), db.raw("COUNT(*) as closed"))
+      .groupByRaw("TO_CHAR(updated_at, 'YYYY-MM')")
+      .orderBy("month");
+
+    // Merge into unified month list
+    const months = new Set([...opened.map(r => r.month), ...closed.map(r => r.month)]);
+    const openedMap  = Object.fromEntries(opened.map(r => [r.month, Number(r.opened)]));
+    const closedMap  = Object.fromEntries(closed.map(r => [r.month, Number(r.closed)]));
+
+    const trends = Array.from(months).sort().map(month => ({
+      month,
+      opened: openedMap[month]  || 0,
+      closed: closedMap[month]  || 0,
+    }));
+
+    res.json(trends);
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

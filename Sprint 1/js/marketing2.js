@@ -261,6 +261,69 @@ function renderCRMOverview() {
           }).join('')}
         </div>
       </div>
+    </div>
+
+    <!-- Win / Loss Analysis ── quick-win view ── -->
+    <div style="margin-top:20px">
+      <div class="card-header" style="margin-bottom:12px">
+        <span class="card-title">Win / loss analysis</span>
+        <span style="font-size:12px;color:var(--text-muted)">Closed deals · hit rate by client type · lost-reason breakdown</span>
+      </div>
+      ${(() => {
+        const decided = opps.filter(o => ['won','lost'].includes(o.stage));
+        const wonList  = decided.filter(o => o.stage === 'won');
+        const lostList = decided.filter(o => o.stage === 'lost');
+        const byClient = {};
+        decided.forEach(o => {
+          const k = o.client || 'Unknown';
+          if (!byClient[k]) byClient[k] = { won: 0, lost: 0, value: 0 };
+          if (o.stage === 'won') { byClient[k].won++; byClient[k].value += o.value || 0; }
+          else byClient[k].lost++;
+        });
+        const lostReasons = {};
+        lostList.forEach(o => {
+          const r = o.lostReason || 'Not stated';
+          lostReasons[r] = (lostReasons[r] || 0) + 1;
+        });
+        const maxLost = Math.max(...Object.values(lostReasons), 1);
+        if (!decided.length) return `<div style="padding:24px;text-align:center;color:var(--text-muted)">No closed deals yet — win/loss data will appear as deals reach Won or Lost status.</div>`;
+        return `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="card" style="padding:16px">
+            <div style="font-size:12px;font-weight:600;margin-bottom:12px">Hit rate by account</div>
+            ${Object.entries(byClient).sort((a,b) => (b[1].won+b[1].lost)-(a[1].won+a[1].lost)).slice(0,6).map(([name, d]) => {
+              const total = d.won + d.lost;
+              const rate  = total ? Math.round(d.won / total * 100) : 0;
+              return `
+              <div style="margin-bottom:10px">
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+                  <span style="font-weight:500">${name}</span>
+                  <span style="color:${rate>=50?'var(--green)':'var(--amber)'};font-weight:600">${rate}% (${d.won}/${total})</span>
+                </div>
+                <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+                  <div style="height:100%;width:${rate}%;background:${rate>=50?'var(--green)':'var(--amber)'};border-radius:3px;transition:width .5s"></div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+          <div class="card" style="padding:16px">
+            <div style="font-size:12px;font-weight:600;margin-bottom:12px">Lost-reason Pareto (${lostList.length} deals lost)</div>
+            ${Object.entries(lostReasons).sort((a,b)=>b[1]-a[1]).map(([reason, count]) => `
+              <div style="margin-bottom:8px">
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+                  <span>${reason}</span><span style="font-weight:600">${count}</span>
+                </div>
+                <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden">
+                  <div style="height:100%;width:${Math.round(count/maxLost*100)}%;background:var(--red);border-radius:3px"></div>
+                </div>
+              </div>`).join('') || `<div style="font-size:12px;color:var(--text-muted)">No lost-reason data recorded.</div>`}
+            <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text-muted)">
+              Overall win rate: <strong style="color:${winRate>=50?'var(--green)':'var(--amber)'}">${winRate}%</strong> ·
+              Avg won value: <strong>${wonList.length ? crmFmt(Math.round(wonList.reduce((s,o)=>s+o.value,0)/wonList.length)) : '—'}</strong>
+            </div>
+          </div>
+        </div>`;
+      })()}
     </div>`;
 }
 
@@ -331,6 +394,9 @@ function renderCRMTenders() {
   const stageInfo = { drafting:'In progress', review:'Under review', submitted:'Submitted' };
   const stageCls  = { drafting:'badge-amber', review:'badge-blue', submitted:'badge-green' };
 
+  const role = AppState.currentUser?.role || 'manager';
+  const isCoordinator = role === 'user';
+
   document.getElementById('crmTabContent').innerHTML = `
     <div class="metric-grid" style="margin-bottom:20px">
       ${[
@@ -344,10 +410,12 @@ function renderCRMTenders() {
     <div class="card">
       <div class="card-header">
         <span class="card-title">Active tenders & RFQs</span>
+        ${!isCoordinator ? `
         <button class="btn btn-primary btn-sm" onclick="openNewTenderModal()">
           <svg viewBox="0 0 15 15" fill="none"><path d="M7.5 2v11M2 7.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           Log tender
         </button>
+        ` : ''}
       </div>
       ${CRMData.tenders.map(t => {
         const days = crmDaysLeft(t.due);
@@ -388,7 +456,7 @@ function renderCRMTenders() {
           <div class="tender-right">
             <div style="font-family:var(--font-mono);font-size:13px;font-weight:500">${crmFmt(t.value)}</div>
             <span class="badge ${stageCls[t.stage]||'badge-muted'}" style="font-size:10px">${stageInfo[t.stage]||t.stage}</span>
-            ${t.stage !== 'submitted' ? `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showToast('Opening quote builder for ${t.id}','info');switchCRMTab('quote')">Build quote</button>` : ''}
+            ${t.stage !== 'submitted' && !isCoordinator ? `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showToast('Opening quote builder for ${t.id}','info');switchCRMTab('quote')">Build quote</button>` : ''}
           </div>
         </div>`;
       }).join('')}
@@ -400,6 +468,9 @@ function renderCRMTenders() {
 ═══════════════════════════════════════════════════════════ */
 function renderCRMQuote() {
   const lines = CRMData.quoteLines;
+
+  const role = AppState.currentUser?.role || 'manager';
+  const isCoordinator = role === 'user';
 
   function calcLine(l) {
     const cost  = l.qty * l.unitCost;
@@ -420,16 +491,16 @@ function renderCRMQuote() {
           <div style="display:flex;align-items:center;gap:12px">
             <span class="card-title">Quote builder</span>
             <div style="display:flex;gap:8px">
-              <select style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;font-size:12px;color:var(--text-primary);outline:none;font-family:var(--font-body)">
+              <select ${isCoordinator ? 'disabled' : ''} style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;font-size:12px;color:var(--text-primary);outline:none;font-family:var(--font-body)">
                 ${CRMData.opportunities.filter(o=>!['won','lost'].includes(o.stage)).map(o=>`<option value="${o.id}">${o.id} — ${o.name.slice(0,30)}</option>`).join('')}
               </select>
-              <select style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;font-size:12px;color:var(--text-primary);outline:none;font-family:var(--font-body)">
+              <select ${isCoordinator ? 'disabled' : ''} style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;font-size:12px;color:var(--text-primary);outline:none;font-family:var(--font-body)">
                 <option>Rev A</option><option>Rev B</option><option>Rev C</option>
               </select>
             </div>
           </div>
           <div style="display:flex;gap:8px">
-            <button class="btn btn-secondary btn-sm" onclick="showToast('Line added','success');renderCRMQuote()">+ Add line</button>
+            ${!isCoordinator ? `<button class="btn btn-secondary btn-sm" onclick="showToast('Line added','success');renderCRMQuote()">+ Add line</button>` : ''}
             <button class="btn btn-primary btn-sm" onclick="showToast('Quote PDF generated','success')">Generate PDF</button>
           </div>
         </div>
@@ -449,16 +520,17 @@ function renderCRMQuote() {
             const c = calcLine(l);
             return `
             <div class="quote-line" id="qline-${i}">
-              <input class="quote-input" value="${l.desc}" onchange="CRMData.quoteLines[${i}].desc=this.value"/>
-              <input class="quote-input mono" type="number" value="${l.qty}"     onchange="CRMData.quoteLines[${i}].qty=+this.value;renderCRMQuote()"/>
-              <input class="quote-input mono" type="number" value="${l.unitCost}" onchange="CRMData.quoteLines[${i}].unitCost=+this.value;renderCRMQuote()"/>
+              <input class="quote-input" value="${l.desc}" ${isCoordinator ? 'disabled' : ''} onchange="CRMData.quoteLines[${i}].desc=this.value"/>
+              <input class="quote-input mono" type="number" value="${l.qty}" ${isCoordinator ? 'disabled' : ''} onchange="CRMData.quoteLines[${i}].qty=+this.value;renderCRMQuote()"/>
+              <input class="quote-input mono" type="number" value="${l.unitCost}" ${isCoordinator ? 'disabled' : ''} onchange="CRMData.quoteLines[${i}].unitCost=+this.value;renderCRMQuote()"/>
               <div style="display:flex;align-items:center;gap:5px">
-                <input class="quote-input mono" type="number" value="${l.markup}" onchange="CRMData.quoteLines[${i}].markup=+this.value;renderCRMQuote()" style="width:52px"/>
+                <input class="quote-input mono" type="number" value="${l.markup}" ${isCoordinator ? 'disabled' : ''} onchange="CRMData.quoteLines[${i}].markup=+this.value;renderCRMQuote()" style="width:52px"/>
                 <span style="font-size:11px;color:${l.markup>30?'var(--green)':'var(--amber)'};font-weight:600">%</span>
               </div>
+              ${!isCoordinator ? `
               <button class="btn-icon" title="Remove" onclick="CRMData.quoteLines.splice(${i},1);renderCRMQuote()">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-              </button>
+              </button>` : '<span></span>'}
             </div>`;
           }).join('')}
         </div>
@@ -494,10 +566,14 @@ function renderCRMQuote() {
             ? `<div style="margin-top:10px;padding:9px 12px;background:var(--amber-bg);border-radius:var(--radius-sm);font-size:11px;color:var(--amber)">⚠ Margin ${marginPct}% is below the ${CRMData.marginThreshold||20}% floor — GM approval required before sending.</div>`
             : ''}
           <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
-            ${marginPct < (CRMData.marginThreshold || 20)
-              ? `<button class="btn btn-primary" onclick="switchCRMTab('approvals');showToast('Quote routed to GM for approval','info')">Submit for approval</button>`
-              : `<button class="btn btn-primary" onclick="showToast('Quote submitted to client','success')">Submit to client</button>`}
-            <button class="btn btn-secondary" onclick="switchCRMTab('pipeline');showToast('Quote saved as Rev A','info')">Save draft</button>
+            ${isCoordinator ? `
+              <span style="font-size:12px;color:var(--text-muted);text-align:center;padding:6px 0">View only mode</span>
+            ` : `
+              ${marginPct < (CRMData.marginThreshold || 20)
+                ? `<button class="btn btn-primary" onclick="switchCRMTab('approvals');showToast('Quote routed to GM for approval','info')">Submit for approval</button>`
+                : `<button class="btn btn-primary" onclick="showToast('Quote submitted to client','success')">Submit to client</button>`}
+              <button class="btn btn-secondary" onclick="switchCRMTab('pipeline');showToast('Quote saved as Rev A','info')">Save draft</button>
+            `}
             <button class="btn btn-ghost btn-sm" onclick="showToast('Price index updated from live market data','info')">
               <svg viewBox="0 0 15 15" fill="none"><path d="M13 7.5A5.5 5.5 0 112.5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M2 2v3h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Refresh material index
@@ -530,11 +606,14 @@ function renderCRMQuote() {
    TAB 5 — BOQ INGESTION
 ═══════════════════════════════════════════════════════════ */
 function renderCRMBOQ() {
+  const role = AppState.currentUser?.role || 'manager';
+  const isCoordinator = role === 'user';
+
   document.getElementById('crmTabContent').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <!-- Upload zone -->
       <div>
-        <div class="boq-zone" onclick="showToast('CAD/BOQ file parsed — 7 line items extracted','success')">
+        <div class="boq-zone" ${!isCoordinator ? 'onclick="showToast(\'CAD/BOQ file parsed — 7 line items extracted\',\'success\')"' : 'style="cursor:not-allowed"'}>
           <div class="boq-zone-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path d="M12 3v10M8 9l4-4 4 4" stroke="var(--brand)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -543,9 +622,11 @@ function renderCRMBOQ() {
           </div>
           <div style="font-size:14px;font-weight:500;color:var(--text-primary);margin-bottom:6px">Drop CAD files or BOQ documents</div>
           <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Supports: .DWG, .STEP, .IGES, .PDF, .XLSX, .CSV</div>
+          ${!isCoordinator ? `
           <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showToast('BOQ parsing engine started…','info')">
             Browse files
           </button>
+          ` : ''}
         </div>
 
         <div class="card" style="margin-top:14px">
@@ -559,8 +640,8 @@ function renderCRMBOQ() {
             <div style="margin-bottom:12px">
               <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.09em;display:block;margin-bottom:5px">${label}</label>
               ${type==='select'
-                ? `<select style="width:100%;background:var(--bg-elevated);border:1px solid var(--border-md);border-radius:var(--radius-sm);padding:7px 10px;font-size:12px;color:var(--text-primary);outline:none;font-family:var(--font-body)">${opts.map(o=>`<option>${o}</option>`).join('')}</select>`
-                : `<div style="display:flex;align-items:center;gap:8px"><input type="checkbox" checked style="accent-color:var(--brand)"/><span style="font-size:12px;color:var(--text-secondary)">Automatically push extracted items to quote builder</span></div>`
+                ? `<select ${isCoordinator ? 'disabled' : ''} style="width:100%;background:var(--bg-elevated);border:1px solid var(--border-md);border-radius:var(--radius-sm);padding:7px 10px;font-size:12px;color:var(--text-primary);outline:none;font-family:var(--font-body)">${opts.map(o=>`<option>${o}</option>`).join('')}</select>`
+                : `<div style="display:flex;align-items:center;gap:8px"><input type="checkbox" checked ${isCoordinator ? 'disabled' : ''} style="accent-color:var(--brand)"/><span style="font-size:12px;color:var(--text-secondary)">Automatically push extracted items to quote builder</span></div>`
               }
             </div>`).join('')}
         </div>
@@ -572,7 +653,7 @@ function renderCRMBOQ() {
           <span class="card-title">Extracted BOQ — OPP-006</span>
           <div style="display:flex;gap:8px">
             <span class="badge badge-green" style="font-size:10px">7 items</span>
-            <button class="btn btn-secondary btn-sm" onclick="showToast('BOQ pushed to quote builder','success');switchCRMTab('quote')">Push to quote</button>
+            ${!isCoordinator ? `<button class="btn btn-secondary btn-sm" onclick="showToast('BOQ pushed to quote builder','success');switchCRMTab('quote')">Push to quote</button>` : ''}
           </div>
         </div>
         <table class="boq-line-table">
@@ -597,7 +678,7 @@ function renderCRMBOQ() {
           </tbody>
         </table>
         <div style="padding:12px 0 0;display:flex;gap:8px">
-          <button class="btn btn-secondary btn-sm" onclick="showToast('Creating project entity from BOQ…','info');navigate('projects')">Create project entity</button>
+          ${!isCoordinator ? `<button class="btn btn-secondary btn-sm" onclick="showToast('Creating project entity from BOQ…','info');navigate('projects')">Create project entity</button>` : ''}
           <button class="btn btn-ghost btn-sm" onclick="showToast('BOQ exported','success')">Export BOQ</button>
         </div>
       </div>
@@ -608,13 +689,18 @@ function renderCRMBOQ() {
    TAB 6 — CLIENT DATABASE
 ═══════════════════════════════════════════════════════════ */
 function renderCRMClients() {
+  const role = AppState.currentUser?.role || 'manager';
+  const isCoordinator = role === 'user';
+
   document.getElementById('crmTabContent').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <div style="font-size:12px;color:var(--text-muted)">${CRMData.clients.length} clients · ${CRMData.clients.reduce((s,c)=>s+c.totalRevenue,0)>0?crmFmt(CRMData.clients.reduce((s,c)=>s+c.totalRevenue,0)):''} total lifetime revenue</div>
+      ${!isCoordinator ? `
       <button class="btn btn-primary btn-sm" onclick="openNewClientModal()">
         <svg viewBox="0 0 15 15" fill="none"><path d="M7.5 2v11M2 7.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         Add client
       </button>
+      ` : ''}
     </div>
     <div class="client-grid">
       ${CRMData.clients.map(c => {
@@ -662,15 +748,20 @@ function renderCRMClients() {
 function renderCRMActivity() {
   const iconMap = { won:'🏆', call:'📞', quote:'📄', note:'📝', new:'✨', tender:'📋', lost:'❌', email:'📧', meeting:'🤝' };
 
+  const role = AppState.currentUser?.role || 'manager';
+  const isCoordinator = role === 'user';
+
   document.getElementById('crmTabContent').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start">
       <div class="card">
         <div class="card-header">
           <span class="card-title">CRM activity log</span>
+          ${!isCoordinator ? `
           <button class="btn btn-primary btn-sm" onclick="openLogActivityModal()">
             <svg viewBox="0 0 15 15" fill="none"><path d="M7.5 2v11M2 7.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             Log activity
           </button>
+          ` : ''}
         </div>
         <div class="crm-activity">
           ${CRMData.activities.map(a=>`
@@ -687,6 +778,7 @@ function renderCRMActivity() {
       </div>
 
       <!-- Log activity form -->
+      ${!isCoordinator ? `
       <div class="card">
         <div class="card-header"><span class="card-title">Quick log</span></div>
         <div style="display:flex;flex-direction:column;gap:12px">
@@ -708,6 +800,14 @@ function renderCRMActivity() {
           <button class="btn btn-primary" onclick="showToast('Activity logged — pipeline updated','success')">Log activity</button>
         </div>
       </div>
+      ` : `
+      <div class="card" style="display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;color:var(--text-muted);font-size:12px;border:1px dashed var(--border)">
+        <div>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:8px;opacity:.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <div>Quick log restricted to Sales Managers & Execs</div>
+        </div>
+      </div>
+      `}
     </div>`;
 }
 
@@ -718,6 +818,10 @@ function openOppDetail(id) {
   const opp = CRMData.opportunities.find(o => o.id === id);
   if (!opp) return;
   const days = crmDaysLeft(opp.closeDate);
+
+  const role = AppState.currentUser?.role || 'manager';
+  const isCoordinator = role === 'user';
+  const isManager = role === 'manager' || role === 'gm';
 
   openCRMModal(`
     <div style="background:var(--bg-elevated);border:1px solid var(--border-md);border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--shadow-lg)">
@@ -759,12 +863,14 @@ function openOppDetail(id) {
           <div>Currency: <strong style="color:var(--text-primary)">${opp.currency}</strong></div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          ${opp.stage !== 'won' && opp.stage !== 'lost' ? `
+          ${!isCoordinator && opp.stage !== 'won' && opp.stage !== 'lost' ? `
             <button class="btn btn-primary btn-sm" onclick="closeCRMModal();switchCRMTab('quote');showToast('Opening quote for ${opp.id}','info')">Build quote</button>
             <button class="btn btn-secondary btn-sm" onclick="closeCRMModal();showToast('${opp.id} moved to next stage','success')">Advance stage</button>
             <button class="btn btn-secondary btn-sm" style="color:var(--red)" onclick="closeCRMModal();showToast('${opp.id} marked lost','warn')">Mark lost</button>` : ''}
-          ${opp.stage === 'won' && !opp.linkedProject ? `
+          ${!isCoordinator && opp.stage === 'won' && !opp.linkedProject ? `
             <button class="btn btn-primary btn-sm" onclick="closeCRMModal();navigate('projects');showToast('Creating project entity from ${opp.id}','success')">Create project entity</button>` : ''}
+          ${isManager ? `
+            <button class="btn btn-secondary btn-sm" style="color:var(--red)" onclick="closeCRMModal();showToast('${opp.id} deleted','error')">Delete</button>` : ''}
           <button class="btn btn-ghost btn-sm" onclick="closeCRMModal()">Close</button>
         </div>
       </div>
@@ -774,6 +880,8 @@ function openOppDetail(id) {
 function openClientDetail(id) {
   const c = CRMData.clients.find(x => x.id === id);
   if (!c) return;
+  const role = AppState.currentUser?.role || 'manager';
+  const isCoordinator = role === 'user';
   openCRMModal(`
     <div style="background:var(--bg-elevated);border:1px solid var(--border-md);border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--shadow-lg)">
       <div style="padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px">
@@ -794,8 +902,10 @@ function openClientDetail(id) {
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">${c.tags.map(t=>`<span class="client-tag">${t}</span>`).join('')}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${!isCoordinator ? `
           <button class="btn btn-primary btn-sm" onclick="closeCRMModal();openNewOppModal()">New opportunity</button>
           <button class="btn btn-secondary btn-sm" onclick="closeCRMModal();openLogActivityModal()">Log activity</button>
+          ` : ''}
           <button class="btn btn-ghost btn-sm" onclick="closeCRMModal()">Close</button>
         </div>
       </div>
@@ -1035,6 +1145,9 @@ function renderMktPreQual() {
   const el = document.getElementById('mktTabContent');
   if (!el) return;
 
+  const role = AppState.currentUser?.role || 'manager';
+  const isCoordinator = role === 'user';
+
   const regs = MktPrequalData.registrations;
   const active   = regs.filter(r => r.status === 'active').length;
   const expiring = regs.filter(r => r.status === 'expiring').length;
@@ -1057,10 +1170,12 @@ function renderMktPreQual() {
     <div class="card">
       <div class="card-header">
         <span class="card-title">Pre-qualification registrations</span>
+        ${!isCoordinator ? `
         <button class="btn btn-primary btn-sm" onclick="mktNewPrequal()">
           <svg viewBox="0 0 15 15" fill="none"><path d="M7.5 2v11M2 7.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           New registration
         </button>
+        ` : ''}
       </div>
       <table style="width:100%;border-collapse:collapse">
         <thead>
@@ -1083,7 +1198,7 @@ function renderMktPreQual() {
               </td>
               <td style="padding:10px 12px;font-size:11px;color:var(--text-muted)">${r.contact}</td>
               <td style="padding:10px 12px">
-                ${r.status !== 'active' && r.status !== 'pending'
+                ${!isCoordinator && r.status !== 'active' && r.status !== 'pending'
                   ? `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();showToast('Renewal process started for ${r.authority}','info')">Renew</button>`
                   : `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showToast('Opening ${r.id} documents','info')">View</button>`}
               </td>
@@ -1117,6 +1232,9 @@ function renderMktIntelligence() {
   const el = document.getElementById('mktTabContent');
   if (!el) return;
 
+  const role = AppState.currentUser?.role || 'manager';
+  const isCoordinator = role === 'user';
+
   const wins = MktIntelData.winLoss.filter(w => w.result === 'won').length;
   const losses = MktIntelData.winLoss.filter(w => w.result === 'lost').length;
   const winRate = Math.round(wins / (wins + losses) * 100);
@@ -1136,7 +1254,7 @@ function renderMktIntelligence() {
       <div class="card">
         <div class="card-header">
           <span class="card-title">Competitor registry</span>
-          <button class="btn btn-ghost btn-sm" onclick="mktAddCompetitor()">+ Add</button>
+          ${!isCoordinator ? `<button class="btn btn-ghost btn-sm" onclick="mktAddCompetitor()">+ Add</button>` : ''}
         </div>
         ${MktIntelData.competitors.map(c => `
           <div style="padding:12px 0;border-bottom:1px solid var(--border)">
@@ -1214,6 +1332,9 @@ function renderMktContacts() {
   const el = document.getElementById('mktTabContent');
   if (!el) return;
 
+  const role = AppState.currentUser?.role || 'manager';
+  const isCoordinator = role === 'user';
+
   const contacts = MktContactsData.contacts;
   const today = new Date();
   const overdue = contacts.filter(c => new Date(c.followUpDue) < today).length;
@@ -1235,10 +1356,12 @@ function renderMktContacts() {
           <div class="metric-value" style="font-size:22px;color:var(--amber)">${dueSoon}</div>
         </div>
       </div>
+      ${!isCoordinator ? `
       <button class="btn btn-primary btn-sm" onclick="mktAddContact()">
         <svg viewBox="0 0 15 15" fill="none"><path d="M7.5 2v11M2 7.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         Add contact
       </button>
+      ` : ''}
     </div>
 
     <div class="contact-grid">
@@ -1277,10 +1400,12 @@ function renderMktContacts() {
               <span style="font-size:11px;font-weight:600;color:${fuColor}">${fuLabel}</span>
             </div>
           </div>
+          ${!isCoordinator ? `
           <div style="display:flex;gap:6px;margin-top:10px">
             <button class="btn btn-secondary btn-sm" style="flex:1" onclick="showToast('Logging call with ${c.name}','info')">Log call</button>
             <button class="btn btn-ghost btn-sm" style="flex:1" onclick="showToast('Opening email to ${c.name}','info')">Email</button>
           </div>
+          ` : ''}
         </div>`;
       }).join('')}
     </div>`;
@@ -1354,6 +1479,8 @@ function mktCalToday() {
 function mktCalSelect(key) { if (_mktCal) { _mktCal.sel = key; renderMktActionQueue(); } }
 
 function mktScheduleAppt(dateKey) {
+  const role = AppState.currentUser?.role || 'manager';
+  if (role === 'user') { showToast('Access denied: Coordinator is view-only', 'error'); return; }
   const def = dateKey || (_mktCal && _mktCal.sel) || crmDateKey(new Date());
   openCRMModal(`
     <div style="background:var(--bg-elevated);border:1px solid var(--border-md);border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--shadow-lg)">
@@ -1463,6 +1590,8 @@ const _cv = (id) => (document.getElementById(id) || {}).value || '';
 
 /* ═══ Add competitor ═══ */
 function mktAddCompetitor() {
+  const role = AppState.currentUser?.role || 'manager';
+  if (role === 'user') { showToast('Access denied: Coordinator is view-only', 'error'); return; }
   openCRMModal(crmFormShell('Add competitor', `
     <div><label style="${CRM_FORM_LBL}">Name</label><input id="cmpName" type="text" placeholder="e.g. Gulf Steel Works" style="${CRM_FORM_INP}"/></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -1501,6 +1630,8 @@ async function mktSaveCompetitor() {
 
 /* ═══ Add contact ═══ */
 function mktAddContact() {
+  const role = AppState.currentUser?.role || 'manager';
+  if (role === 'user') { showToast('Access denied: Coordinator is view-only', 'error'); return; }
   openCRMModal(crmFormShell('Add contact', `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div><label style="${CRM_FORM_LBL}">Name</label><input id="ctName" type="text" placeholder="e.g. Ms. Priya Nair" style="${CRM_FORM_INP}"/></div>
@@ -1538,6 +1669,8 @@ async function mktSaveContact() {
 
 /* ═══ New pre-qualification ═══ */
 function mktNewPrequal() {
+  const role = AppState.currentUser?.role || 'manager';
+  if (role === 'user') { showToast('Access denied: Coordinator is view-only', 'error'); return; }
   openCRMModal(crmFormShell('New pre-qualification', `
     <div><label style="${CRM_FORM_LBL}">Authority</label><input id="pqAuthority" type="text" placeholder="e.g. ADNOC" style="${CRM_FORM_INP}"/></div>
     <div><label style="${CRM_FORM_LBL}">Category</label><input id="pqCategory" type="text" placeholder="e.g. Pressure Vessel Fabricator (ASME VIII)" style="${CRM_FORM_INP}"/></div>
@@ -1576,6 +1709,9 @@ function renderMktActionQueue() {
   if (!el) return;
 
   if (!_mktCal) { const n = new Date(); _mktCal = { year:n.getFullYear(), month:n.getMonth(), sel:crmDateKey(n) }; }
+
+  const role = AppState.currentUser?.role || 'manager';
+  const isCoordinator = role === 'user';
 
   const actions  = crmCollectActions();
   const overdue  = actions.filter(a => a.days < 0 && a.kind !== 'Stale opp').length;
@@ -1663,10 +1799,12 @@ function renderMktActionQueue() {
           </div>
           <div style="display:flex;gap:8px">
             <button class="btn btn-ghost btn-sm" onclick="mktCalToday()">Today</button>
+            ${!isCoordinator ? `
             <button class="btn btn-primary btn-sm" onclick="mktScheduleAppt()">
               <svg viewBox="0 0 15 15" fill="none"><path d="M7.5 2v11M2 7.5h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
               Schedule
             </button>
+            ` : ''}
           </div>
         </div>
         <div style="padding:4px 16px 12px">
@@ -1683,7 +1821,7 @@ function renderMktActionQueue() {
       <div class="card">
         <div class="card-header">
           <span class="card-title" style="font-size:13px">${selLabel}</span>
-          <button class="btn btn-ghost btn-sm" onclick="mktScheduleAppt('${_mktCal.sel}')">+ Add</button>
+          ${!isCoordinator ? `<button class="btn btn-ghost btn-sm" onclick="mktScheduleAppt('${_mktCal.sel}')">+ Add</button>` : ''}
         </div>
         <div>${agenda}</div>
       </div>
@@ -1815,7 +1953,9 @@ function renderMktApprovals() {
   const approved = all.filter(q => q.status === 'approved');
   const rejected = all.filter(q => q.status === 'rejected');
   const threshold = CRMData.marginThreshold || 20;
-  const isGM = !(AppState && AppState.department) || AppState.department === 'gm';
+  const role = AppState.currentUser?.role || 'manager';
+  const isManager = role === 'manager' || role === 'gm';
+  const isGM = isManager;
 
   const statusCls = { pending:'badge-amber', approved:'badge-green', rejected:'badge-red' };
 
@@ -1829,7 +1969,7 @@ function renderMktApprovals() {
       ].map(k=>`<div class="metric-card"><div class="metric-label">${k.label}</div><div class="metric-value" style="font-size:26px;color:${k.color}">${k.value}</div></div>`).join('')}
     </div>
 
-    ${!isGM ? `<div style="padding:11px 14px;background:var(--amber-bg);border-radius:var(--radius-md);font-size:12px;color:var(--amber);margin-bottom:16px">You can submit quotes for approval. Final sign-off is reserved for the General Manager.</div>` : ''}
+    ${!isGM ? `<div style="padding:11px 14px;background:var(--amber-bg);border-radius:var(--radius-md);font-size:12px;color:var(--amber);margin-bottom:16px">You can submit quotes for approval. Final sign-off is reserved for the Sales Manager / General Manager.</div>` : ''}
 
     <div class="card">
       <div class="card-header">
@@ -1860,7 +2000,7 @@ function renderMktApprovals() {
                   ? `<button class="btn btn-primary btn-sm" onclick="crmDecideApproval('${q.id}','approved')">Approve</button>
                      <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="crmDecideApproval('${q.id}','rejected')">Reject</button>`
                   : q.status === 'pending'
-                    ? `<span style="font-size:11px;color:var(--text-muted)">Awaiting GM</span>`
+                    ? `<span style="font-size:11px;color:var(--text-muted)">Awaiting Sign-off</span>`
                     : `<span style="font-size:11px;color:var(--text-muted)">${q.decidedBy} · ${q.decidedOn}</span>`}
               </td>
             </tr>
